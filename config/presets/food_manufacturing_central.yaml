@@ -1,0 +1,19 @@
+# Example preset: food manufacturers in central-region provinces, revenue band 50-500M baht.
+scope:
+  provinces: [สมุทรปราการ, สมุทรสาคร, ปทุมธานี, นนทบุรี, นครปฐม]
+  tsic_prefixes: ["10"]              # TSIC 10 = manufacture of food products
+  fiscal_years: [2566, 2567]
+  revenue_min: 50000000
+  revenue_max: 500000000
+  max_companies: 500
+
+registry:
+  csv_paths: ["data/registry/*.csv"]
+
+financials:
+  mode: web
+  url_template: "https://datawarehouse.dbd.go.th/company/profile/{juristic_id}"
+
+runtime:
+  db_path: data/food_mfg_central.sqlite
+  user_agent: "thfin-research/0.1 (+mailto:CHANGE-ME@example.com)"

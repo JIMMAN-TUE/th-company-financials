@@ -1,0 +1,18 @@
+# Example preset: hotels in Bangkok. Use with:  python -m thfin plan --config config/presets/hotels_bangkok.yaml
+# Presets are full configs; copy config/scope.yaml and change only `scope`.
+scope:
+  provinces: [กรุงเทพมหานคร]
+  tsic_prefixes: ["55"]              # TSIC 55 = accommodation (verify the code format in your registry CSV)
+  fiscal_years: [2567]
+  max_companies: 300
+
+registry:
+  csv_paths: ["data/registry/*.csv"]
+
+financials:
+  mode: web
+  url_template: "https://datawarehouse.dbd.go.th/company/profile/{juristic_id}"
+
+runtime:
+  db_path: data/hotels_bangkok.sqlite
+  user_agent: "thfin-research/0.1 (+mailto:CHANGE-ME@example.com)"

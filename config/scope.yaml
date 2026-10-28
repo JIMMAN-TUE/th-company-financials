@@ -1,0 +1,44 @@
+# ============================================================================
+# SCOPE: who to collect. Edit this file (or use `--set key=value`) then run:
+#   python -m thfin plan     # shows how many companies match and how long it takes
+#   python -m thfin run      # collects
+# Empty list = "no filter on this field". Unknown keys are rejected on purpose.
+# ============================================================================
+scope:
+  provinces: []                      # e.g. [กรุงเทพมหานคร, ชลบุรี]; [] = whole country
+  tsic_prefixes: []                  # TSIC code prefixes, e.g. ["10"] food mfg, ["55"] hotels, ["47"] retail
+  juristic_types: [บริษัทจำกัด, บริษัทมหาชนจำกัด]   # substring match. Sole proprietors do NOT file statements
+  statuses: [ดำเนินกิจการอยู่]          # substring match on registry status text
+  name_contains: []                  # e.g. ["อาหาร"]
+  capital_min: null                  # registered capital in baht
+  capital_max: null
+  fiscal_years: [2566, 2567]         # Buddhist Era (Gregorian like 2024 is auto-converted)
+  revenue_min: null                  # applied at export time to total revenue (baht)
+  revenue_max: null
+  include_ids: []                    # QUOTED 13-digit IDs; if set, ONLY these companies (other filters ignored)
+  exclude_ids: []
+  max_companies: 200                 # safety cap per run. Raise deliberately.
+
+registry:                            # company universe = DBD open-data CSV exports (see docs/DATA_SOURCES.md)
+  csv_paths: ["data/registry/*.csv"]
+  encoding: utf-8-sig
+  delimiter: ","
+  columns: {}                        # only if auto-detect fails: {juristic_id: "HEADER", province: "HEADER", ...}
+
+financials:
+  mode: web                          # web = fetch pages; files = parse statements you exported by hand
+  url_template: "https://datawarehouse.dbd.go.th/company/profile/{juristic_id}"   # UNVERIFIED: confirm with `probe`
+  files_dir: data/statements         # mode=files: <anything>_<13-digit-id>_<anything>.xlsx|html
+  unit_multiplier: 1.0               # 1000 if the source shows thousands of baht
+
+runtime:
+  db_path: data/thfin.sqlite
+  cache_dir: .cache/http
+  export_dir: data/exports
+  user_agent: "thfin-research/0.1 (+mailto:CHANGE-ME@example.com)"   # REQUIRED: set a real contact before `run`
+  requests_per_second: 0.5           # be gentle. Do not raise without a reason
+  timeout_seconds: 30
+  max_retries: 3
+  respect_robots: true
+  allowed_hosts: [datawarehouse.dbd.go.th]   # client refuses any other host
+  max_consecutive_errors: 10

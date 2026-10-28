@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thfin"
+version = "0.1.0"
+description = "Configurable collector of Thai juristic-person financials (revenue, cost, profit)"
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2.5",
+  "pyyaml>=6",
+  "beautifulsoup4>=4.12",
+  "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.scripts]
+thfin = "thfin.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]

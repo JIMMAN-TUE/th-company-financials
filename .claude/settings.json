@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make test)",
+      "Bash(make lint)",
+      "Bash(python -m thfin plan:*)",
+      "Bash(python -m thfin status:*)",
+      "Bash(python -m thfin registry-headers:*)",
+      "Bash(python -m thfin export:*)",
+      "Bash(python3 -m unittest:*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)"
+    ]
+  }
+}

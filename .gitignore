@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# collected data and caches never go into git (may be large; review licence before sharing)
+.cache/
+data/*.sqlite
+data/exports/
+data/registry/*
+data/statements/*
+!data/registry/.gitkeep
+!data/statements/.gitkeep
+.env
