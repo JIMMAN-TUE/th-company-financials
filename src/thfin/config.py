@@ -136,6 +136,10 @@ class FinancialsCfg(_Base):
 
 
 class RuntimeCfg(_Base):
+    transport: Literal["urllib", "chromium"] = "urllib"
+    chromium_executable: str | None = None
+    chromium_headless: bool = True
+    chromium_wait_selector: str = "table"
     db_path: str = "data/thfin.sqlite"
     cache_dir: str = ".cache/http"
     export_dir: str = "data/exports"

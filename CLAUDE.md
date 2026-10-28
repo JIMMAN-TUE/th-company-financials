@@ -7,11 +7,13 @@ The owner and team communicate in Thai and English; reply in the language the us
 ## Commands (run from the repo root)
 
 ```bash
-make test                                   # 99 offline unit tests, no network needed
+make test                                   # offline tests; optional Chromium tests use loopback only
 python -m thfin plan                        # what the scope selects + time estimate. Fetches nothing
 python -m thfin registry-headers            # show registry CSV headers and the detected column mapping
 python -m thfin probe <13-digit-id>         # fetch ONE page and show what the parser extracts
 python -m thfin run --limit 25              # collect (resumable; re-run to continue)
+python -m thfin queue                       # scoped offline HTML links for manual exports
+python -m thfin watch-downloads --dir <Downloads>  # move new exports in saved queue order
 python -m thfin import-files                # offline mode: parse statements exported by hand
 python -m thfin export                      # CSV (+XLSX) from the SQLite database
 python -m thfin status
@@ -49,7 +51,8 @@ Install: `python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]
 ## Hard rules
 
 - Respect `robots.txt`, the rate limit and `runtime.allowed_hosts`. Do not lower the delay, disable
-  robots checks, rotate user agents or work around a block. If a site refuses, stop and report it.
+  robots checks or rotate user agents. Chromium is supported for JavaScript rendering; apply the same
+  robots, host allowlist and timing checks to browser requests and report access failures.
 - Add a host to `allowed_hosts` only after reading its terms of use, and record the decision in
   `docs/LEGAL.md`.
 - Juristic persons only. Do not collect or store directors, shareholders, phone numbers, addresses of
@@ -72,6 +75,7 @@ These could not be checked when the project was created (the build sandbox could
 4. The terms of use for automated access to DataWarehouse+ are unconfirmed. See `docs/LEGAL.md`.
 
 Status 2026-10-28: DataWarehouse+ answers every request (robots.txt included) with an Imperva Incapsula
-bot challenge, so `mode: web` is blocked; do not work around it. Details in `docs/HANDOVER.md` "Findings".
+bot challenge. Update 2026-10-29: the owner authorizes Chromium in the same package; the blanket
+headless-browser prohibition is removed. Live Chromium access is still unverified. See HANDOVER Findings.
 
 See `docs/HANDOVER.md` for status and next steps, and `docs/DATA_SOURCES.md` for sources.

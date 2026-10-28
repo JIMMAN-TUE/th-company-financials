@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .config import Config, ConfigError, load_config
 from .http import FetchError, PoliteClient
+from .manual import DEFAULT_QUEUE, create_queue, watch_downloads
 from .parsers.statement import html_tables_to_rows, parse_html
 from .pipeline import LARGE_RUN, build_plan, import_files, run
 from .sources.registry import ALIASES, read_headers, registry_files, resolve_columns
@@ -38,6 +39,13 @@ def _parser() -> argparse.ArgumentParser:
 
     sub.add_parser("registry-headers", parents=[common], help="show registry CSV headers and detected mapping")
     sub.add_parser("import-files", parents=[common], help="parse manually exported statements from files_dir")
+
+    sp = sub.add_parser("queue", parents=[common], help="create an offline HTML queue for manual exports")
+    sp.add_argument("--out", default=DEFAULT_QUEUE, help="HTML output; progress saved alongside as .html.json")
+
+    sp = sub.add_parser("watch-downloads", parents=[common], help="move new manual exports in queue order")
+    sp.add_argument("--dir", required=True, type=Path, help="dedicated browser download directory")
+    sp.add_argument("--queue", default=DEFAULT_QUEUE, type=Path, help="HTML queue created by thfin queue")
 
     sp = sub.add_parser("export", parents=[common], help="write CSV/XLSX from the database")
     sp.add_argument("--format", choices=["csv", "xlsx", "both"], default="both")
@@ -139,6 +147,17 @@ def cmd_import_files(args) -> int:
     return 0 if import_files(cfg, Store(cfg.runtime.db_path)).errors == 0 else 1
 
 
+def cmd_queue(args) -> int:
+    count = create_queue(_load(args), Path(args.out))
+    print(f"Queued {count:,} companies -> {args.out}; start watch-downloads, then open the HTML yourself")
+    return 0
+
+
+def cmd_watch_downloads(args) -> int:
+    watch_downloads(_load(args), args.dir, args.queue)
+    return 0
+
+
 def cmd_export(args) -> int:
     cfg = _load(args)
     store = Store(cfg.runtime.db_path)
@@ -173,6 +192,7 @@ def cmd_ui(args) -> int:
 COMMANDS = {
     "plan": cmd_plan, "run": cmd_run, "probe": cmd_probe, "registry-headers": cmd_registry_headers,
     "import-files": cmd_import_files, "export": cmd_export, "status": cmd_status, "ui": cmd_ui,
+    "queue": cmd_queue, "watch-downloads": cmd_watch_downloads,
 }
 
 
@@ -183,6 +203,9 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as e:
         print(f"config error: {e}", file=sys.stderr)
         return 2
+    except OSError as e:
+        print(f"file error: {e}", file=sys.stderr)
+        return 1
     except KeyboardInterrupt:
         print("\ninterrupted; progress is saved, re-run to resume", file=sys.stderr)
         return 130

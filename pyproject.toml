@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
+browser = ["playwright>=1.48"]
 
 [project.scripts]
 thfin = "thfin.cli:main"

@@ -2,13 +2,13 @@
 
 **สรุปภาษาไทย:** โปรเจกต์นี้ดึงรายได้ ต้นทุนขาย ค่าใช้จ่าย และกำไรของนิติบุคคลไทยจากแหล่งข้อมูลทางการ
 ปรับขอบเขต (จังหวัด, อุตสาหกรรม TSIC, ทุนจดทะเบียน, ปีงบ, ช่วงรายได้) ได้จากไฟล์ `config/scope.yaml`
-โค้ดและเทสต์ 99 ข้อผ่านครบ แต่ **ยังไม่เคยทดสอบกับเว็บ DBD จริง** (เครื่องที่สร้างต่อเว็บนั้นไม่ได้)
-งานแรกของคนที่รับช่วงคือยืนยัน 4 ข้อใน "First steps" ด้านล่าง ก่อนรันจริง
+โค้ดทดสอบด้วยข้อมูลบริษัทสมมติ ผลตรวจเว็บ DBD และข้อที่ยังไม่ยืนยันอยู่ใน Findings ด้านล่าง
+Chromium backend กับตัวช่วย export ด้วยมือเพิ่มเมื่อ 2026-10-29
 
 **อัปเดต 2026-10-28:** ตรวจกับเว็บจริงแล้ว DataWarehouse+ (`datawarehouse.dbd.go.th`) ใช้ระบบกันบอท
 Imperva Incapsula ตอบ challenge ทุก path รวมถึง `robots.txt` ทั้งจาก cloud และจาก IP ในไทย
-ตามกฎของโปรเจกต์จึง **หยุด `mode: web`** ไว้ ห้ามหาทางผ่าน (headless browser, cookie, เปลี่ยน UA)
-ทางที่ใช้ได้: export ไฟล์ด้วยมือ + `import-files` และขออนุญาต/API จาก DBD ดู "Findings" ด้านล่าง
+ผลตรวจนี้ยังไม่ยืนยันการเข้าถึงผ่าน Chromium; วันที่ 2026-10-29 เจ้าของแก้คำสั่งให้ใช้ Chromium
+ในแพ็กเกจเดียวกันได้ ยกเลิกข้อห้าม headless แบบเหมารวม ตัวช่วย export ด้วยมือยังใช้ได้ ดู Findings ด้านล่าง
 
 ## State (2026-10-29)
 
@@ -23,10 +23,11 @@ Imperva Incapsula ตอบ challenge ทุก path รวมถึง `robots.
 | Pipeline (plan, resumable run, circuit breaker, offline `import-files`) | done, tested |
 | SQLite store + CSV/XLSX export with gross/net margin | done, tested |
 | CLI, presets, CI workflow, Claude Code commands | done |
-| **Live DBD fetch** | **blocked**: Incapsula bot challenge on every path incl. robots.txt (2026-10-28). Do not work around it |
+| **Live DBD fetch** | **blocked**: Incapsula bot challenge on every path incl. robots.txt (2026-10-28). Chromium access unverified |
 | Registry CSV from the real DBD open data | **not verified**: site reachable from a Thai IP; no CSV downloaded or mapped yet |
 
-Tests: `make test` (99, offline; passing on Linux with ruff clean). On Windows run
+Tests: `make test` (offline; Linux passes with ruff clean). The full development run includes
+132 tests with real Chromium against a fictional loopback server. On Windows run
 `python -m unittest discover -s tests`; the 19 Windows-only errors (backslash paths in YAML test configs)
 were fixed on `chore/verify-dbd` but have not been re-run on Windows yet.
 
@@ -56,7 +57,7 @@ What this means for the four unverified assumptions:
 
 1. **URL template**: cannot be confirmed; every DataWarehouse+ URL returns the bot challenge.
 2. **JS/XHR tables**: cannot be checked by a program for the same reason. A person can open a company in a
-   normal browser and look at the network tab, but automating that path is not allowed (see Hard rules).
+   normal browser and look at the network tab. Chromium rendering is now supported, subject to the shared policy.
 3. **Registry columns**: still open. Owner downloads CSVs by hand, then `registry-headers`. A web search
    found only monthly "newly registered" (`dataset_11_01`) and "dissolved" (`dataset_11_02`) files, not a
    full registry; they may lack the 13-digit ID or a status column. Check before relying on them.
@@ -64,11 +65,13 @@ What this means for the four unverified assumptions:
    says automated access is not welcome. `docs/LEGAL.md` is not yet updated (owner approves the wording).
 
 `PoliteClient` already behaves correctly here: robots 403 = disallow everything; the 302 loop raises
-`FetchError` and the run stops. Known gap: it ignores `Crawl-delay`; honour it before ever adding
-`opendata.dbd.go.th` to `allowed_hosts` (that host asks for 10 s).
+`FetchError` and the run stops. The `Crawl-delay` gap was addressed on `feat/manual-export-queue`: the client now uses
+`max(crawl_delay, 1 / requests_per_second)` seconds, including retries. No hosts were added.
 
-Decision (2026-10-28): no headless browser, cookie replay or user-agent changes to pass the
-challenge. This changes only with written permission from DBD, recorded in `docs/LEGAL.md`.
+Decision update (2026-10-29): the owner explicitly corrected the earlier instruction and authorized
+Chromium in the same package. The blanket headless-browser prohibition is superseded.
+The browser backend retains robots.txt, configured user agent, rate limits and the unchanged allowlist.
+This is not evidence of working live DBD access or confirmation of the site terms.
 
 ## First steps (needs a machine that can reach DBD sites)
 
@@ -101,7 +104,7 @@ and ask DBD (`document@dbd.go.th`) for an API, bulk file or written permission.
 ## Open questions for the owner
 
 - Is automated access to DataWarehouse+ allowed, or should the team ask DBD for bulk/API access?
-  (2026-10-28: the site blocks bots; a request to DBD is the only legitimate route to `mode: web`.)
+  (Live access and site terms remain unverified; Chromium support does not establish either.)
 - Does the team want a helper for the manual route (list of company links + move exports from Downloads
   into `data/statements/` named by ID)?
 - Which fields matter beyond revenue, cost of sales, expenses, net profit, total assets?
@@ -115,3 +118,23 @@ and ask DBD (`document@dbd.go.th`) for an API, bulk file or written permission.
   parser), `/collect` (run a batch), `/qa` (spot-check data), `/handover` (refresh this file).
 - **claude.ai**: attach the repo to a session, or paste `CLAUDE.md` and this file into a Project so
   teammates start from the same context.
+
+## Manual export helper (2026-10-29)
+
+`feat/manual-export-queue` builds on `chore/verify-dbd` (PR #1).
+
+- `thfin queue` creates scoped company links in `manual-queue.html` with a durable JSON FIFO.
+- `thfin watch-downloads --dir <dedicated Downloads>` moves new, stable `.xlsx` / `.html` files
+  to `financials.files_dir`, named by the next 13-digit ID. Run it BEFORE exporting, one file per
+  company in queue order; wait for `Moved` before starting the next company. It cannot verify identity.
+- No company URLs are requested or opened by these commands; URL template remains unverified.
+- `Ctrl+C` resumes from the same JSON state. Existing files are ignored; destination collisions stop
+  without overwriting. See README for interrupted-copy recovery and stale lock handling.
+- Offline fictional-data tests cover the helpers and crawl delay; CI now includes Windows + Linux
+  on Python 3.10 / 3.12. The current development environment is Linux, so Windows results come from CI.
+
+No real registry, financial files, `data/`, `.cache/`, allowed hosts or LEGAL wording were changed.
+Chromium rendering is now an optional backend in the same package (`pip install -e ".[browser]"`),
+selected by `--set runtime.transport=chromium`. Robots are read as plain HTTP before browser launch.
+All page/script/XHR requests are checked; redirects stop and require a final allowed URL.
+Real Chromium tests use a fictional loopback site. No live DBD Chromium check has been made.
