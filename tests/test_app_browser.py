@@ -66,6 +66,17 @@ class AppBrowserTests(unittest.TestCase):
                         self.assertGreater(Path(download.value.path()).stat().st_size, 0)
                         page.locator("#cap").fill("2")
                         page.wait_for_function("() => document.querySelector('#resultWrap').textContent.includes('ขอบเขตเปลี่ยนแล้ว')")
+                        page.locator("#queueJob").click()
+                        page.wait_for_function("() => document.querySelector('#jobStatus').textContent.includes('สร้างคิว export · งานเสร็จแล้ว')")
+                        downloads = root / "Downloads"
+                        downloads.mkdir()
+                        page.locator("#downloadDir").fill(str(downloads))
+                        page.locator("#watchJob").click()
+                        page.wait_for_function("() => document.querySelector('#jobStatus').textContent.includes('เฝ้าดาวน์โหลด · กำลังทำงาน')")
+                        self.assertTrue(page.locator("#exportXlsx").is_disabled())
+                        self.assertTrue(page.locator("#openQueue").is_disabled())
+                        page.locator("#stopJob").click()
+                        page.wait_for_function("() => document.querySelector('#jobStatus').textContent.includes('หยุดแล้ว')")
                         self.assertEqual(errors, [])
                     finally:
                         browser.close()

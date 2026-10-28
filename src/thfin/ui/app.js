@@ -15,13 +15,14 @@ async function startJob(action){
   $("actionError").replaceChildren();
   try{
     await preview();
-    const job = await api("/api/job/start", {action, scope:collect(), limit:Number($("batchLimit").value), directory:$("downloadDir").value.trim()});
+    const job = await api("/api/job/start", {action, scope:collect(), limit:Number($("batchLimit").value), refetch:$("refetchJob").checked, directory:$("downloadDir").value.trim()});
     renderJob(job);
   }catch(e){ showError(e); }
 }
 function renderJob(job){
   appBusy = ["running","stopping"].includes(job.status);
   ["collectJob","queueJob","watchJob","importJob","registryUpload","statementUpload","saveSource"].forEach(id => $(id).disabled = appBusy);
+  ["openQueue","exportXlsx","exportCsv"].forEach(id => $(id).disabled = appBusy && job.action === "watch");
   $("stopJob").disabled = !appBusy || job.status === "stopping";
   $("jobStatus").className = "msg " + (job.status === "failed" ? "err" : job.status === "completed" ? "ok" : "warn");
   $("jobStatus").textContent = (actionLabels[job.action] ? actionLabels[job.action] + " · " : "") + (statusLabels[job.status] || job.status);

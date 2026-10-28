@@ -164,9 +164,12 @@ class AppController:
         with self._lock:
             self._require_idle()
             cfg = self._config(data.get("scope", {}))
+            refetch = data.get("refetch", False)
+            if type(refetch) is not bool:
+                raise ConfigError("ตัวเลือกประมวลผลใหม่ไม่ถูกต้อง")
             store = Store(cfg.runtime.db_path) if Path(cfg.runtime.db_path).exists() else None
             try:
-                plan = build_plan(cfg, store)
+                plan = build_plan(cfg, store, refetch=refetch and action == "collect")
             finally:
                 if store:
                     store.close()
@@ -186,10 +189,10 @@ class AppController:
                     raise ConfigError("กรุณาระบุโฟลเดอร์ Downloads ที่มีอยู่จริง")
             self._stop.clear()
             self._job = {"id": uuid.uuid4().hex, "action": action, "status": "running", "error": "",
-                         "logs": [], "summary": None, "scope": cfg.scope.model_dump(),
+                         "logs": [], "summary": None, "scope": cfg.scope.model_dump(), "refetch": refetch,
                          "plan": {"matched": plan.universe.total_matched, "selected": len(plan.universe.companies),
                                   "pending": plan.est_requests, "est_hours": plan.est_hours}}
-            self._thread = threading.Thread(target=self._work, args=(action, cfg, limit, queue, directory), daemon=True)
+            self._thread = threading.Thread(target=self._work, args=(action, cfg, limit, queue, directory, refetch), daemon=True)
             self._thread.start()
             return self.status()
 
@@ -221,7 +224,7 @@ class AppController:
         with self._lock:
             return self._active_queue().read_bytes()
 
-    def _work(self, action, cfg, limit, queue, directory):
+    def _work(self, action, cfg, limit, queue, directory, refetch):
         store = None
         try:
             if action == "queue":
@@ -245,7 +248,7 @@ class AppController:
                 store.upsert_companies(universe.companies)
                 if action == "collect":
                     result = run(cfg, PoliteClient(cfg.runtime), store, limit=limit, progress=self._log,
-                                 should_stop=self._stop.is_set)
+                                 should_stop=self._stop.is_set, refetch=refetch)
                 else:
                     result = import_files(cfg, store, progress=self._log,
                                           allowed_ids={c.juristic_id for c in universe.companies},

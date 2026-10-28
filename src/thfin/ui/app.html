@@ -20,6 +20,8 @@
   <h2>รวบรวมตามขอบเขตที่เลือก</h2>
   <label for="batchLimit">จำนวนบริษัทต่อรอบ (ทำต่อจากที่ค้างไว้ได้)</label>
   <input id="batchLimit" type="number" min="1" max="1000" step="1" value="25">
+  <label><input id="refetchJob" type="checkbox"> ประมวลผลใหม่ รวมบริษัทที่เคยเก็บแล้ว</label>
+  <p class="hint">ใช้หลังแก้ URL วิธีอ่านหน้าเว็บ หรือหน่วยงบ เริ่มประมวลผลใหม่จากบริษัทแรกใน scope ตามจำนวนต่อรอบที่เลือก</p>
   <div class="app-actions">
     <button class="primary" id="collectJob">เริ่มดึงข้อมูลงบ</button>
     <button class="ghost" id="stopJob" disabled>หยุด</button>

@@ -146,6 +146,28 @@ class AppTests(unittest.TestCase):
         self.assertNotIn(second, transport.calls)
         self.assertEqual([r["juristic_id"] for r in self.app.rows(SCOPE)], [J1])
 
+    def test_explicit_reprocessing_applies_corrected_units_to_completed_companies(self):
+        self.app.save_settings({"user_agent": "thfin-test (+mailto:test@example.org)"})
+        cfg = load_config(self.config)
+        url = cfg.financials.url_template.format(juristic_id=J1)
+        transport = FakeTransport({url: (200, {}, STATEMENT_HTML.read_bytes())})
+        clock = FakeClock()
+        scope = {**SCOPE, "max_companies": 1}
+        def factory(rt):
+            return PoliteClient(rt, transport, sleep=clock.sleep, clock=clock.time)
+        with mock.patch("thfin.app.PoliteClient", side_effect=factory):
+            self.app.start({"action": "collect", "scope": scope})
+            self.assertEqual(self.complete()["summary"]["ok"], 1)
+            self.app.save_settings({"unit_multiplier": 1000})
+            self.app.start({"action": "collect", "scope": scope})
+            self.assertEqual(self.complete()["summary"]["attempted"], 0)
+            self.app.start({"action": "collect", "scope": scope, "refetch": True})
+            job = self.complete()
+        self.assertEqual(job["summary"]["ok"], 1)
+        self.assertEqual(job["plan"]["pending"], 1)
+        self.assertEqual(transport.calls.count(url), 2)
+        self.assertEqual(self.app.rows(scope)[0]["revenue_total"], 1_200_000_000)
+
     def test_upload_rejects_traversal_unidentified_statements_and_invalid_csv(self):
         for name in ("../outside.csv", "..\\outside.csv", "C:outside.csv", ""):
             with self.assertRaises(ConfigError):
