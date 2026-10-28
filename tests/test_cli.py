@@ -1,8 +1,10 @@
 import contextlib
 import io
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tests.helpers import REGISTRY_CSV
 from thfin.cli import main
@@ -50,7 +52,9 @@ class CliTests(unittest.TestCase):
 
     def test_run_refuses_placeholder_contact(self):
         bad = write_cfg(self.tmp, user_agent="thfin/0.1 (+mailto:CHANGE-ME@example.com)")
-        code, _, err = call("run", "--config", str(bad))
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("THFIN_USER_AGENT", None)  # a real contact in the env would hide the placeholder
+            code, _, err = call("run", "--config", str(bad))
         self.assertEqual(code, 2)
         self.assertIn("CHANGE-ME", err)
 
