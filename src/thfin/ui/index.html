@@ -131,6 +131,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 </section>
 
 <aside><div class="sticky">
+  __APP_PANEL__
   <div class="card">
     <h2>ผลลัพธ์ตัวอย่าง <span class="small" id="busy"></span></h2>
     <div class="kpis">
@@ -200,7 +201,7 @@ function collect(){
   };
 }
 
-function schedule(){ clearTimeout(timer); $("busy").textContent = "กำลังคำนวณ…"; timer = setTimeout(preview, 300); }
+function schedule(){ clearTimeout(timer); $("busy").textContent = "กำลังคำนวณ…"; document.dispatchEvent(new Event("scopechange")); timer = setTimeout(preview, 300); }
 
 async function preview(){
   const mine = ++seq;
@@ -310,5 +311,6 @@ async function init(){
 }
 init();
 </script>
+__APP_SCRIPT__
 </body>
 </html>

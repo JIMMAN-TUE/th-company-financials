@@ -15,6 +15,12 @@
 
 ## เริ่มใช้งาน
 
+**Windows ไม่ต้องติดตั้ง Python:** ใช้แอป ZIP ที่รวม Python และ Chromium แล้ว
+ดู [วิธีดาวน์โหลด เปิดใช้ และส่งต่อแอป](docs/WINDOWS_APP.md) เลือก scope แล้วกดรัน/นำเข้า/ดาวน์โหลด Excel
+จากหน้าจอเดียวกัน ข้อมูลของแต่ละคนเก็บใน `%LOCALAPPDATA%\thfin`
+
+ถ้ามี Python อยู่แล้ว เปิดแอปด้วย `thfin app` ส่วน `thfin ui` เดิมใช้ตั้ง scope อย่างเดียว
+
 ```bash
 git clone <repo-url> && cd th-company-financials
 python -m venv .venv && . .venv/bin/activate

@@ -1,0 +1,57 @@
+<style>
+.app-mode aside .sticky{position:static}.app-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.app-mode main{max-width:1500px}.app-mode header h1{font-size:22px}.app-mode header{border-top:4px solid var(--accent)}
+#jobLog{max-height:190px;white-space:pre-wrap}#resultWrap{overflow:auto;max-height:300px}
+#resultWrap table{width:100%;border-collapse:collapse;font-size:12px}#resultWrap th,#resultWrap td{padding:8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+#jobStatus{font-weight:600}.app-mode input[type=file]{max-width:100%;font:inherit;font-size:13px}
+.app-mode details{margin-top:10px}.app-mode summary{cursor:pointer}.app-mode #cfgpath{overflow-wrap:anywhere}
+</style>
+<div class="card">
+  <h2>เตรียมข้อมูล</h2>
+  <p class="hint">นำเข้า CSV ทะเบียนบริษัท แล้วเลือกจังหวัด หมวดอุตสาหกรรม ปีงบ และจำนวนบริษัททางซ้าย</p>
+  <label for="registryUpload">ไฟล์ทะเบียนบริษัท (.csv)</label>
+  <input id="registryUpload" type="file" accept=".csv" multiple>
+  <label for="statementUpload">ไฟล์งบที่มีเลขทะเบียน 13 หลักในชื่อไฟล์</label>
+  <input id="statementUpload" type="file" accept=".xlsx,.xlsm,.html,.htm" multiple>
+  <p class="hint">ไฟล์ละไม่เกิน 24 MB เก็บข้อมูลในเครื่องของผู้ใช้แต่ละคน</p>
+  <div id="uploadMessage" role="status"></div>
+</div>
+<div class="card">
+  <h2>รวบรวมตามขอบเขตที่เลือก</h2>
+  <label for="batchLimit">จำนวนบริษัทต่อรอบ (ทำต่อจากที่ค้างไว้ได้)</label>
+  <input id="batchLimit" type="number" min="1" max="1000" step="1" value="25">
+  <div class="app-actions">
+    <button class="primary" id="collectJob">เริ่มดึงข้อมูลงบ</button>
+    <button class="ghost" id="stopJob" disabled>หยุด</button>
+  </div>
+  <p class="hint">ระบบคำนวณขอบเขตอีกครั้งก่อนเริ่มงาน ใช้ Chromium ตามแหล่งข้อมูลที่ตั้งไว้</p>
+  <details>
+    <summary>ใช้ไฟล์ที่ export ด้วยมือ</summary>
+    <div class="app-actions"><button class="ghost" id="queueJob">สร้างคิวตาม scope</button><button class="ghost" id="openQueue">ดาวน์โหลดรายการคิว</button></div>
+    <label for="downloadDir">โฟลเดอร์ดาวน์โหลดเฉพาะงานนี้ (path เต็ม)</label>
+    <input id="downloadDir" type="text" placeholder="C:\Users\ชื่อคุณ\Downloads\thfin">
+    <div class="app-actions"><button class="ghost" id="watchJob">เริ่มเฝ้าดาวน์โหลด</button><button class="ghost" id="importJob">นำเข้างบตาม scope</button></div>
+    <p class="hint">เริ่มเฝ้าก่อน export ทีละบริษัทตามลำดับคิว รอข้อความ Moved ก่อนทำบริษัทถัดไป หยุดตัวเฝ้าแล้วกดนำเข้างบ</p>
+  </details>
+  <div class="msg" id="jobStatus" role="status" aria-live="polite">พร้อมเริ่มงาน</div>
+  <div class="hint" id="jobScope"></div>
+  <pre id="jobLog" hidden></pre>
+  <div id="actionError" role="alert"></div>
+</div>
+<div class="card">
+  <h2>ผลลัพธ์ใน scope ปัจจุบัน <span class="small" id="resultCount"></span></h2>
+  <div class="app-actions"><button class="ghost" id="refreshResults">ดูผลลัพธ์</button><button class="primary" id="exportXlsx">ดาวน์โหลด Excel</button><button class="ghost" id="exportCsv">ดาวน์โหลด CSV</button></div>
+  <p class="hint">กรองทั้งบริษัท ปีงบ และช่วงรายได้ตาม widget ตารางแสดงไม่เกิน 100 แถว ส่วนไฟล์ดาวน์โหลดมีผลทั้งหมด</p>
+  <div id="resultWrap"><p class="small">กดดูผลลัพธ์หลังรวบรวมหรือนำเข้าข้อมูลงบแล้ว</p></div>
+</div>
+<div class="card">
+  <details><summary>ตั้งค่าแหล่งข้อมูล</summary>
+    <label for="sourceUrl">ลิงก์หน้าบริษัท ({juristic_id} แทนเลขทะเบียน)</label><input id="sourceUrl" type="text">
+    <p class="hint">ลิงก์เริ่มต้นยังไม่ยืนยันรูปแบบจริง กรุณาตรวจสอบก่อนรัน</p>
+    <label for="sourceAgent">ข้อมูลติดต่อที่ส่งให้เว็บไซต์ (User-Agent)</label><input id="sourceAgent" type="text" placeholder="thfin/0.1 (+mailto:you@company.com)">
+    <label for="sourceTransport">วิธีอ่านหน้าเว็บ</label><select id="sourceTransport"><option value="chromium">Chromium · สำหรับตาราง JavaScript</option><option value="urllib">HTTP · สำหรับ HTML ปกติ</option></select>
+    <label for="sourceMultiplier">ตัวคูณหน่วยงบ (บาท = 1, พันบาท = 1000)</label><input id="sourceMultiplier" type="number" step="any" min="0" value="1">
+    <p><button class="ghost" id="saveSource">บันทึกแหล่งข้อมูล</button></p><div id="sourceMessage" role="status"></div>
+    <p class="hint" id="workspacePath"></p>
+  </details>
+</div>

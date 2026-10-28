@@ -1,9 +1,11 @@
-"""Local scope-builder UI: `python -m thfin ui`.
+"""Local scope-builder UI: `python -m thfin ui` (offline) and `thfin app` (job controls).
 
 A tiny standard-library web server for one person on one machine:
   * binds to 127.0.0.1 only, checks the Host header (DNS-rebinding) and requires a per-run token
   * never fetches anything from the internet; it only reads the registry CSVs and writes the
     `scope:` section of a YAML file inside the config folder
+
+`thfin app` additionally attaches a controller for explicitly started collection/import jobs.
 """
 
 from __future__ import annotations
@@ -68,6 +70,7 @@ class ScopeUI:
         self._companies: list[Company] | None = None
         self._options: dict | None = None
         self.registry_error = ""
+        self.app = None  # enabled only by `thfin app`; scope-builder mode stays offline
 
     def companies(self) -> list[Company]:
         with self._lock:
@@ -170,7 +173,7 @@ def _make_handler(ui: ScopeUI):
 
         def _body(self) -> dict:
             n = int(self.headers.get("Content-Length") or 0)
-            if n > MAX_BODY:
+            if n < 0 or n > (36 * 1024 * 1024 if ui.app else MAX_BODY):
                 raise ConfigError("request too large")
             data = json.loads(self.rfile.read(n) or b"{}")
             if not isinstance(data, dict):
@@ -183,6 +186,9 @@ def _make_handler(ui: ScopeUI):
                 return self._json(403, {"ok": False, "error": "bad host"})
             if self.path in ("/", "/index.html"):
                 html = HTML_PATH.read_text(encoding="utf-8").replace("__TOKEN__", ui.token)
+                panel = (HTML_PATH.parent / "app.html").read_text(encoding="utf-8") if ui.app else ""
+                html = html.replace("__APP_PANEL__", panel).replace(
+                    "__APP_SCRIPT__", '<script src="/app.js"></script>' if ui.app else "")
                 body = html.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -195,6 +201,13 @@ def _make_handler(ui: ScopeUI):
                 if not self._authorised():
                     return self._json(403, {"ok": False, "error": "forbidden"})
                 self._json(200, {"ok": True, **ui.options()})
+            elif self.path == "/app.js" and ui.app:
+                self._binary(200, (HTML_PATH.parent / "app.js").read_bytes(), "text/javascript; charset=utf-8")
+            elif self.path in {"/api/job", "/api/settings"} and ui.app:
+                if not self._authorised():
+                    return self._json(403, {"ok": False, "error": "forbidden"})
+                payload = ui.app.status() if self.path == "/api/job" else ui.app.settings()
+                self._json(200, {"ok": True, **payload})
             else:
                 self._json(404, {"ok": False, "error": "not found"})
 
@@ -203,6 +216,23 @@ def _make_handler(ui: ScopeUI):
                 return self._json(403, {"ok": False, "error": "forbidden"})
             try:
                 data = self._body()
+                if ui.app:
+                    if self.path == "/api/job/start":
+                        return self._json(200, {"ok": True, **ui.app.start(data)})
+                    if self.path == "/api/job/stop":
+                        return self._json(200, {"ok": True, **ui.app.cancel()})
+                    if self.path == "/api/settings":
+                        return self._json(200, {"ok": True, **ui.app.save_settings(data)})
+                    if self.path == "/api/upload":
+                        return self._json(200, {"ok": True, **ui.app.upload(data)})
+                    if self.path == "/api/results":
+                        rows = ui.app.rows(data.get("scope", {}))
+                        return self._json(200, {"ok": True, "total": len(rows), "rows": rows[:100]})
+                    if self.path == "/api/export":
+                        body, name, mime = ui.app.export(data)
+                        return self._binary(200, body, mime, name)
+                    if self.path == "/api/queue-html":
+                        return self._binary(200, ui.app.queue_html(), "text/html; charset=utf-8", "manual-queue.html")
                 if self.path == "/api/preview":
                     return self._json(200, ui.preview(data.get("scope", {})))
                 if self.path == "/api/save":
@@ -212,8 +242,19 @@ def _make_handler(ui: ScopeUI):
             except ValidationError as e:
                 msgs = [f"{'.'.join(map(str, err['loc']))}: {err['msg']}" for err in e.errors()]
                 self._json(400, {"ok": False, "error": "invalid scope", "details": msgs})
-            except (ConfigError, ValueError, json.JSONDecodeError) as e:
+            except (ConfigError, ValueError, TypeError, OSError) as e:
                 self._json(400, {"ok": False, "error": str(e)})
+
+        def _binary(self, code, body, mime, name=None):
+            self.send_response(code)
+            self.send_header("Content-Type", mime)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            if name:
+                self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+            self.end_headers()
+            self.wfile.write(body)
 
     return Handler
 
