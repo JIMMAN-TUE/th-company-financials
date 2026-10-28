@@ -27,7 +27,7 @@ Imperva Incapsula ตอบ challenge ทุก path รวมถึง `robots.
 | Registry CSV from the real DBD open data | **not verified**: site reachable from a Thai IP; no CSV downloaded or mapped yet |
 
 Tests: `make test` (offline; Linux passes with ruff clean). The full development run includes
-132 tests with real Chromium against a fictional loopback server. On Windows run
+133 tests with real Chromium against a fictional loopback server. On Windows run
 `python -m unittest discover -s tests`; the 19 Windows-only errors (backslash paths in YAML test configs)
 were fixed on `chore/verify-dbd` but have not been re-run on Windows yet.
 

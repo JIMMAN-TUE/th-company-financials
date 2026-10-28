@@ -31,6 +31,15 @@ def chromium_path():
 
 
 class BrowserUnitTests(unittest.TestCase):
+    def test_proxy_preserves_implicit_ports_and_schemeless_urls(self):
+        cases = [("http://proxy.example", "http://proxy.example"),
+                 ("https://proxy.example", "https://proxy.example"),
+                 ("proxy.example:3128", "http://proxy.example:3128"),
+                 ("http://[::1]:3128", "http://[::1]:3128")]
+        for value, expected in cases:
+            with self.subTest(value=value), mock.patch("thfin.browser.getproxies", return_value={"https": value}):
+                self.assertEqual(_proxy()["server"], expected)
+
     def test_proxy_keeps_credentials_and_bypass(self):
         with mock.patch("thfin.browser.getproxies", return_value={"https": "http://user:p%40ss@proxy.test:8080"}), \
                 mock.patch.dict(os.environ, {"no_proxy": "localhost,127.0.0.1"}):

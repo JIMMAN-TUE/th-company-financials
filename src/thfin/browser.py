@@ -17,8 +17,16 @@ def _proxy() -> dict | None:
     value = proxies.get("https") or proxies.get("http")
     if not value:
         return None
-    parsed = urlsplit(value)
-    result = {"server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port or 8080}"}
+    try:
+        parsed = urlsplit(value if "://" in value else "http://" + value)
+        host = parsed.hostname
+        if not host:
+            raise ValueError("missing proxy host")
+        host = f"[{host}]" if ":" in host else host
+        port = f":{parsed.port}" if parsed.port is not None else ""
+    except ValueError as e:
+        raise ConfigError("invalid HTTP(S) proxy configuration") from e
+    result = {"server": f"{parsed.scheme}://{host}{port}"}
     if parsed.username:
         result["username"] = unquote(parsed.username)
         result["password"] = unquote(parsed.password or "")
