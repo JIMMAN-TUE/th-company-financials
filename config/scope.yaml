@@ -12,7 +12,9 @@ scope:
   name_contains: []                  # e.g. ["อาหาร"]
   capital_min: null                  # registered capital in baht
   capital_max: null
-  fiscal_years: [2566, 2567]         # Buddhist Era (Gregorian like 2024 is auto-converted)
+  years_back: 3                      # collect the last N fiscal years (1-15)
+  latest_fiscal_year: null           # null = last closed year (current B.E. year - 1); set 2567 if 2568 is not filed yet
+  fiscal_years: []                   # OR list years explicitly, e.g. [2566, 2567, 2568] (wins over years_back). Buddhist Era; 2024 is auto-converted
   revenue_min: null                  # applied at export time to total revenue (baht)
   revenue_max: null
   include_ids: []                    # QUOTED 13-digit IDs; if set, ONLY these companies (other filters ignored)

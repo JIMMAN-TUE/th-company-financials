@@ -7,7 +7,7 @@ The owner and team communicate in Thai and English; reply in the language the us
 ## Commands (run from the repo root)
 
 ```bash
-make test                                   # 71 offline unit tests, no network needed
+make test                                   # 99 offline unit tests, no network needed
 python -m thfin plan                        # what the scope selects + time estimate. Fetches nothing
 python -m thfin registry-headers            # show registry CSV headers and the detected column mapping
 python -m thfin probe <13-digit-id>         # fetch ONE page and show what the parser extracts
@@ -15,6 +15,7 @@ python -m thfin run --limit 25              # collect (resumable; re-run to cont
 python -m thfin import-files                # offline mode: parse statements exported by hand
 python -m thfin export                      # CSV (+XLSX) from the SQLite database
 python -m thfin status
+python -m thfin ui                          # local scope-builder widget (127.0.0.1, token-protected, no internet)
 # any command accepts:  --config config/presets/hotels_bangkok.yaml   --set scope.provinces=ชลบุรี,ระยอง
 ```
 
@@ -26,14 +27,18 @@ Install: `python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]
 1. Edit `config/scope.yaml` (or add a file under `config/presets/`, or pass `--set`).
 2. **Always run `plan` and report** matched / selected / estimated hours to the user. Do not `run` first.
 3. Scope fields: provinces, tsic_prefixes, juristic_types, statuses, name_contains, capital_min/max,
-   fiscal_years (Buddhist Era), revenue_min/max (applied at export), include_ids, exclude_ids, max_companies.
+   years_back (default 3) + latest_fiscal_year, or explicit fiscal_years (Buddhist Era, wins over years_back),
+   revenue_min/max (applied at export), include_ids, exclude_ids, max_companies.
+   Widening the years later re-processes already collected companies from the HTTP cache, so it
+   normally costs no new requests. The UI (`thfin ui`) edits only the `scope:` block of a config file.
 4. Keep `max_companies` as a deliberate cap. Raising it is the user's decision, not a side effect.
 
 ## Code map
 
 | Path | Role |
 |---|---|
-| `src/thfin/config.py` | pydantic config; rejects unknown keys; `--set` overrides |
+| `src/thfin/config.py` | pydantic config; rejects unknown keys; `--set` overrides; `Scope.effective_years()` |
+| `src/thfin/scopeio.py`, `uiserver.py`, `ui/index.html` | scope-builder widget: rewrite the `scope:` block, live preview, local server |
 | `src/thfin/sources/registry.py` | company universe from registry CSVs; column auto-detect; scope matching |
 | `src/thfin/http.py` | polite client: host allowlist, robots.txt, rate limit, retries, disk cache |
 | `src/thfin/parsers/statement.py` | table -> revenue/cost/profit by Thai/English label patterns (`FIELD_PATTERNS`) |

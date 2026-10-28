@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -28,9 +29,11 @@ class Plan:
     warnings: list[str] = field(default_factory=list)
 
 
-def build_plan(cfg: Config, store: Store | None = None, refetch: bool = False) -> Plan:
-    uni = load_universe(cfg)
-    done = set() if (refetch or store is None) else store.done_ids()
+def build_plan(
+    cfg: Config, store: Store | None = None, refetch: bool = False, companies: Iterable[Company] | None = None
+) -> Plan:
+    uni = load_universe(cfg, companies)
+    done = set() if (refetch or store is None) else store.done_ids(cfg.scope.effective_years())
     pending = [c for c in uni.companies if c.juristic_id not in done]
     hours = len(pending) / cfg.runtime.requests_per_second / 3600
     warnings: list[str] = []
@@ -63,7 +66,7 @@ class RunSummary:
 
 
 def _to_rows(juristic_id: str, data: YearData, cfg: Config, source: str) -> list[Financials]:
-    years = set(cfg.scope.fiscal_years)
+    years = set(cfg.scope.effective_years())
     mult = cfg.financials.unit_multiplier
     rows = []
     for year, fields in sorted(data.items()):
@@ -94,6 +97,7 @@ def run(
     store.upsert_companies(plan.universe.companies)
     todo = plan.pending[:limit] if limit else plan.pending
     summary = RunSummary()
+    years_wanted = cfg.scope.effective_years()
     consecutive_errors = 0
     for i, company in enumerate(todo, 1):
         url = cfg.financials.url_template.format(juristic_id=company.juristic_id)
@@ -132,7 +136,7 @@ def run(
                 store.upsert_financials(rows)
                 summary.ok += 1
                 detail = "" if rows else f"no scope years; found {sorted(data)}"
-                store.mark(company.juristic_id, "ok", detail)
+                store.mark(company.juristic_id, "ok", detail, years=years_wanted)
         if i % 25 == 0 or i == len(todo):
             progress(f"[{i}/{len(todo)}] ok={summary.ok} not_found={summary.not_found} "
                      f"parse_empty={summary.parse_empty} errors={summary.errors}")
@@ -169,7 +173,7 @@ def import_files(cfg: Config, store: Store, progress: Callable[[str], None] = pr
             store.mark(jid, "parse_empty", path.name)
             continue
         store.upsert_financials(_to_rows(jid, data, cfg, source=f"file:{path.name}"))
-        store.mark(jid, "ok", path.name)
+        store.mark(jid, "ok", path.name, years=cfg.scope.effective_years())
         summary.ok += 1
     progress(f"imported ok={summary.ok} parse_empty={summary.parse_empty} errors={summary.errors}")
     return summary

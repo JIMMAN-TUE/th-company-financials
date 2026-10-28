@@ -2,14 +2,16 @@
 
 **สรุปภาษาไทย:** โปรเจกต์นี้ดึงรายได้ ต้นทุนขาย ค่าใช้จ่าย และกำไรของนิติบุคคลไทยจากแหล่งข้อมูลทางการ
 ปรับขอบเขต (จังหวัด, อุตสาหกรรม TSIC, ทุนจดทะเบียน, ปีงบ, ช่วงรายได้) ได้จากไฟล์ `config/scope.yaml`
-โค้ดและเทสต์ 71 ข้อผ่านครบ แต่ **ยังไม่เคยทดสอบกับเว็บ DBD จริง** (เครื่องที่สร้างต่อเว็บนั้นไม่ได้)
+โค้ดและเทสต์ 99 ข้อผ่านครบ แต่ **ยังไม่เคยทดสอบกับเว็บ DBD จริง** (เครื่องที่สร้างต่อเว็บนั้นไม่ได้)
 งานแรกของคนที่รับช่วงคือยืนยัน 4 ข้อใน "First steps" ด้านล่าง ก่อนรันจริง
 
 ## State (2026-10-29)
 
 | Area | State |
 |---|---|
-| Config + scope filters | done, tested |
+| Config + scope filters (incl. `years_back`, e.g. last 3 closed years) | done, tested |
+| Scope-builder UI (`thfin ui`) with live counts and safe YAML save | done; tests + driven in headless Chromium against the fictional registry; not tried with a real registry |
+| Widening years later (re-parse from cache, no new requests) | done, tested |
 | Registry CSV loader (column auto-detect, Bangkok aliases, leading-zero repair) | done, tested on a fictional CSV |
 | Polite HTTP client (allowlist, robots, rate limit, retries, cache) | done, tested with a fake transport |
 | Statement parser (Thai/English labels, B.E./C.E. year headers, HTML + Excel) | done, tested on fictional fixtures |
@@ -19,7 +21,7 @@
 | **Live DBD fetch** | **not verified** |
 | Registry CSV from the real DBD open data | **not verified** |
 
-Tests: `make test` (71, offline). Lint (`ruff`) could not be installed in the build sandbox, so the
+Tests: `make test` (99, offline). Lint (`ruff`) could not be installed in the build sandbox, so the
 CI lint job is the first time it runs; fix any findings it reports.
 
 ## First steps (needs a machine that can reach DBD sites)

@@ -19,7 +19,13 @@ with CI green before merge.
 The same domains must also be allowed by the account or organisation (Settings -> Capabilities,
 network access) or the environment cannot use them. Team and Enterprise plans: ask the admin.
 
-## 3. Habits that keep Claude Code reliable here
+## 3. Scope widget
+
+`python -m thfin ui` opens the scope builder on `127.0.0.1`. Run it on a machine that has the registry CSVs
+(Claude Code desktop or CLI). In a cloud session the page is not reachable from your browser, so use
+`/scope` there instead; the widget and `/scope` write the same `scope:` block.
+
+## 4. Habits that keep Claude Code reliable here
 
 - Start non-trivial work in **plan mode**; approve the plan before edits.
 - `CLAUDE.md` is loaded automatically: keep it short and current (`/handover` refreshes the docs).
@@ -28,7 +34,7 @@ network access) or the environment cannot use them. Team and Enterprise plans: a
 - Review `git diff` of `config/` and `docs/LEGAL.md` yourself; those are the risk surface.
 - Never paste real company pages, tokens or emails into prompts that end up committed.
 
-## 4. Prompts
+## 5. Prompts
 
 ### A. First session (verify against the live sites)
 
@@ -52,7 +58,7 @@ separately on a branch and open a PR.
 ### B. Change the scope
 
 ```
-/scope add Chonburi and Rayong, TSIC 10 and 46, fiscal year 2567 only, revenue 50-500M baht
+/scope add Chonburi and Rayong, TSIC 10 and 46, last 3 fiscal years, revenue 50-500M baht
 ```
 
 ### C. Run a batch

@@ -11,6 +11,7 @@ import csv
 import glob
 import re
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -160,8 +161,11 @@ def read_headers(path: Path, cfg: Config) -> list[str]:
         return next(csv.reader(fh, delimiter=cfg.registry.delimiter), [])
 
 
-def iter_companies(cfg: Config):
-    """Yield every parseable Company from all registry files (no scope filtering)."""
+def iter_companies(cfg: Config, check_scope: bool = True):
+    """Yield every parseable Company from all registry files (no scope filtering).
+
+    check_scope=True fails loudly when the scope filters on a column the file does not have.
+    """
     files = registry_files(cfg)
     if not files:
         raise ConfigError(
@@ -179,7 +183,7 @@ def iter_companies(cfg: Config):
                     "Set registry.columns.juristic_id in the config."
                 )
             missing = [f for f in Matcher(cfg.scope).required_fields() if f not in mapping]
-            if missing:
+            if missing and check_scope:
                 raise ConfigError(
                     f"{path}: scope filters on {missing} but those columns were not detected. "
                     f"Headers: {headers}. Map them in registry.columns or relax the scope."
@@ -199,14 +203,29 @@ class Universe:
     by_tsic2: Counter = field(default_factory=Counter)
 
 
-def load_universe(cfg: Config) -> Universe:
-    """Apply the scope. `include_ids` (if set) means exactly those companies, other filters off."""
+def load_all(cfg: Config) -> list[Company]:
+    """Every company in the registry files, de-duplicated (later files win). Used by the UI."""
+    by_id: dict[str, Company] = {}
+    for c in iter_companies(cfg, check_scope=False):
+        by_id[c.juristic_id] = c
+    return list(by_id.values())
+
+
+def load_universe(cfg: Config, companies: Iterable[Company] | None = None) -> Universe:
+    """Apply the scope. `include_ids` (if set) means exactly those companies, other filters off.
+
+    `companies` lets callers (the UI) pass an already-loaded registry instead of re-reading the CSVs.
+    """
     scope = cfg.scope
+
+    def source() -> Iterable[Company]:
+        return companies if companies is not None else iter_companies(cfg)
+
     if scope.include_ids:
         wanted = set(scope.include_ids) - set(scope.exclude_ids)
         found: dict[str, Company] = {}
         try:
-            for c in iter_companies(cfg):
+            for c in source():
                 if c.juristic_id in wanted:
                     found[c.juristic_id] = c
         except ConfigError:
@@ -217,7 +236,7 @@ def load_universe(cfg: Config) -> Universe:
     else:
         match = Matcher(scope)
         matched = {}
-        for c in iter_companies(cfg):
+        for c in source():
             if match(c):
                 matched[c.juristic_id] = c  # later files win on duplicates
 
@@ -230,3 +249,39 @@ def load_universe(cfg: Config) -> Universe:
         by_province=Counter(c.province or "?" for c in ordered),
         by_tsic2=Counter((c.tsic_code[:2] or "?") for c in ordered),
     )
+
+
+def registry_options(companies: Iterable[Company]) -> dict:
+    """Distinct values + counts for the UI's pickers, and which fields the registry really has."""
+    prov: Counter = Counter()
+    tsic2: Counter = Counter()
+    types: Counter = Counter()
+    statuses: Counter = Counter()
+    present: set[str] = set()
+    total = 0
+    for c in companies:
+        total += 1
+        if c.province:
+            prov[c.province] += 1
+            present.add("province")
+        if c.tsic_code:
+            tsic2[c.tsic_code[:2]] += 1
+            present.add("tsic_code")
+        if c.juristic_type:
+            types[c.juristic_type] += 1
+            present.add("juristic_type")
+        if c.status:
+            statuses[c.status] += 1
+            present.add("status")
+        if c.registered_capital is not None:
+            present.add("registered_capital")
+        if c.name_th or c.name_en:
+            present.add("name_th")
+    return {
+        "total": total,
+        "present_fields": sorted(present),
+        "provinces": prov.most_common(),
+        "tsic2": sorted(tsic2.items()),
+        "types": types.most_common(),
+        "statuses": statuses.most_common(),
+    }

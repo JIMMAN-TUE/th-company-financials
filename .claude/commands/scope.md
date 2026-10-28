@@ -6,7 +6,9 @@ argument-hint: e.g. "add Chonburi and Rayong, only TSIC 10, 2567 only"
 Change the scope as requested: $ARGUMENTS
 
 1. Read `config/scope.yaml` (and the preset file if the user named one).
-2. Make the smallest YAML edit that does what was asked. Quote 13-digit IDs. Years are Buddhist Era.
+2. Make the smallest YAML edit that does what was asked. Quote 13-digit IDs. Years are Buddhist Era;
+   "last N years" means `years_back: N` (leave `fiscal_years` empty). People who prefer a form can run
+   `python -m thfin ui` on a machine with the registry.
    Do not touch `runtime.*` or `allowed_hosts`.
 3. Run `python -m thfin plan` (add `--config` if a preset is in use).
 4. Report in 3-5 lines: what changed, matched in registry, selected after the cap, estimated hours, and

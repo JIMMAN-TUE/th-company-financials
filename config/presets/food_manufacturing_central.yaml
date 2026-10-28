@@ -2,7 +2,7 @@
 scope:
   provinces: [สมุทรปราการ, สมุทรสาคร, ปทุมธานี, นนทบุรี, นครปฐม]
   tsic_prefixes: ["10"]              # TSIC 10 = manufacture of food products
-  fiscal_years: [2566, 2567]
+  fiscal_years: [2566, 2567, 2568]   # explicit list (wins over years_back)
   revenue_min: 50000000
   revenue_max: 500000000
   max_companies: 500

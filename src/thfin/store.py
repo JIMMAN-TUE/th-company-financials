@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import sqlite3
+import weakref
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,7 +23,8 @@ CREATE TABLE IF NOT EXISTS financials (
   PRIMARY KEY (juristic_id, fiscal_year)
 );
 CREATE TABLE IF NOT EXISTS fetch_log (
-  juristic_id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT, fetched_at TEXT
+  juristic_id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT, fetched_at TEXT,
+  years TEXT  -- comma-separated fiscal years that were requested when this row was written
 );
 """
 
@@ -46,6 +48,11 @@ class Store:
         self.db = sqlite3.connect(self.path)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
+        weakref.finalize(self, self.db.close)  # never leak the connection, even if close() is forgotten
+        cols = {r["name"] for r in self.db.execute("PRAGMA table_info(fetch_log)")}
+        if "years" not in cols:  # database created by an older version
+            self.db.execute("ALTER TABLE fetch_log ADD COLUMN years TEXT")
+            self.db.commit()
 
     def close(self) -> None:
         self.db.close()
@@ -80,19 +87,31 @@ class Store:
         )
         self.db.commit()
 
-    def mark(self, juristic_id: str, status: str, detail: str = "") -> None:
+    def mark(self, juristic_id: str, status: str, detail: str = "", years: list[int] | None = None) -> None:
         self.db.execute(
-            """INSERT INTO fetch_log VALUES (?,?,?,?)
+            """INSERT INTO fetch_log (juristic_id, status, detail, fetched_at, years) VALUES (?,?,?,?,?)
                ON CONFLICT(juristic_id) DO UPDATE SET status=excluded.status,
-               detail=excluded.detail, fetched_at=excluded.fetched_at""",
-            (juristic_id, status, detail[:500], _now()),
+               detail=excluded.detail, fetched_at=excluded.fetched_at, years=excluded.years""",
+            (juristic_id, status, detail[:500], _now(), ",".join(str(y) for y in sorted(years or []))),
         )
         self.db.commit()
 
-    def done_ids(self) -> set[str]:
+    def done_ids(self, years: list[int] | None = None) -> set[str]:
+        """Companies that need no more work. An `ok` company only counts as done if it was collected
+        for every requested year, so widening years_back later re-processes it (from the HTTP cache
+        when the page is still cached, so usually without new network calls)."""
         marks = ",".join("?" * len(DONE_STATUSES))
-        cur = self.db.execute(f"SELECT juristic_id FROM fetch_log WHERE status IN ({marks})", DONE_STATUSES)
-        return {r[0] for r in cur}
+        cur = self.db.execute(
+            f"SELECT juristic_id, status, years FROM fetch_log WHERE status IN ({marks})", DONE_STATUSES
+        )
+        want = set(years or [])
+        done: set[str] = set()
+        for jid, status, have in cur:
+            if status != "ok" or not want:
+                done.add(jid)
+            elif want <= {int(y) for y in (have or "").split(",") if y.strip().isdigit()}:
+                done.add(jid)
+        return done
 
     def status_counts(self) -> dict[str, int]:
         return {r[0]: r[1] for r in self.db.execute("SELECT status, COUNT(*) FROM fetch_log GROUP BY status")}
@@ -108,9 +127,9 @@ class Store:
     def export_rows(self, scope: Scope) -> list[dict]:
         """Financial rows joined to company info, filtered by the scope's years and revenue band."""
         where, params = [], []
-        if scope.fiscal_years:
-            where.append(f"f.fiscal_year IN ({','.join('?' * len(scope.fiscal_years))})")
-            params += scope.fiscal_years
+        years = scope.effective_years()
+        where.append(f"f.fiscal_year IN ({','.join('?' * len(years))})")
+        params += years
         if scope.revenue_min is not None:
             where.append("f.revenue_total >= ?")
             params.append(scope.revenue_min)

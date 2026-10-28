@@ -44,6 +44,10 @@ def _parser() -> argparse.ArgumentParser:
     sp.add_argument("--out", help="output path without extension")
 
     sub.add_parser("status", parents=[common], help="database counts and fetch statuses")
+
+    sp = sub.add_parser("ui", parents=[common], help="open the local scope-builder UI (nothing is fetched)")
+    sp.add_argument("--port", type=int, default=8765, help="0 = pick a free port")
+    sp.add_argument("--no-browser", action="store_true")
     return p
 
 
@@ -58,7 +62,7 @@ def cmd_plan(args) -> int:
     plan = build_plan(cfg, store, args.refetch)
     u, s = plan.universe, cfg.scope
     print(f"Scope: provinces={s.provinces or 'ALL'} tsic={s.tsic_prefixes or 'ALL'} "
-          f"types={s.juristic_types or 'ALL'} years={s.fiscal_years}")
+          f"types={s.juristic_types or 'ALL'} years={s.effective_years()}")
     print(f"Matched in registry : {u.total_matched:,}")
     print(f"Selected (cap {s.max_companies:,}) : {len(u.companies):,}")
     print(f"Already collected   : {plan.already_done:,}")
@@ -160,9 +164,15 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_ui(args) -> int:
+    from .uiserver import serve
+
+    return serve(args.config, args.overrides, args.port, not args.no_browser)
+
+
 COMMANDS = {
     "plan": cmd_plan, "run": cmd_run, "probe": cmd_probe, "registry-headers": cmd_registry_headers,
-    "import-files": cmd_import_files, "export": cmd_export, "status": cmd_status,
+    "import-files": cmd_import_files, "export": cmd_export, "status": cmd_status, "ui": cmd_ui,
 }
 
 

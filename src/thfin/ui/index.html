@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scope Builder</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#5d6672; --line:#dde1e6; --accent:#0b5fff;
+  --accent-ink:#fff; --warn-bg:#fff4d6; --warn-ink:#6b4b00; --err-bg:#fde8e8; --err-ink:#8a1c1c;
+  --ok-bg:#e4f6ea; --ok-ink:#14532d; --chip:#eaf0ff; --bar:#0b5fff;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f1216; --card:#181c22; --ink:#e8ebef; --muted:#9aa4b0; --line:#2b323b; --accent:#6ea0ff;
+  --accent-ink:#0b1220; --warn-bg:#3a2f10; --warn-ink:#f3d58a; --err-bg:#3d1a1a; --err-ink:#f4b4b4;
+  --ok-bg:#12301d; --ok-ink:#a8e6bd; --chip:#1d2a45; --bar:#6ea0ff;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Noto Sans Thai","Sarabun",sans-serif}
+header{padding:16px 20px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{margin:0;font-size:18px} header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);gap:16px;padding:16px 20px;max-width:1280px;margin:0 auto}
+@media (max-width:900px){main{grid-template-columns:1fr;padding:12px 16px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.card h2{margin:0 0 8px;font-size:14px;letter-spacing:.2px}
+.hint{color:var(--muted);font-size:12.5px;margin:4px 0 0}
+label{display:block;font-size:13px;margin:8px 0 4px;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:64px;resize:vertical}
+input[type=range]{width:100%;padding:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{margin:0;padding:7px 12px;cursor:pointer;color:var(--ink);font-size:13px}
+.seg input{position:absolute;opacity:0}
+.seg input:checked+span{font-weight:600}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{background:var(--chip);border-radius:999px;padding:3px 8px 3px 10px;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0}
+.list{max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 8px;margin-top:6px}
+.list label{display:flex;gap:8px;align-items:center;margin:0;padding:4px 0;color:var(--ink);font-size:13.5px}
+.list .n{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+button.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+aside .sticky{position:sticky;top:12px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:12px}
+.msg{border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13px}
+.warn{background:var(--warn-bg);color:var(--warn-ink)} .err{background:var(--err-bg);color:var(--err-ink)} .ok{background:var(--ok-bg);color:var(--ok-ink)}
+.bars div{display:grid;grid-template-columns:110px 1fr 56px;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
+.bars h3{margin:12px 0 2px;font-size:12px;color:var(--muted);font-weight:600}
+.bars i{display:block;height:8px;border-radius:4px;background:var(--bar)}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;font-size:12px;max-height:240px;margin:6px 0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.years .chip{background:var(--accent);color:var(--accent-ink);padding:3px 10px}
+.small{font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Scope Builder <span class="small">· ตั้งขอบเขตการดึงข้อมูลงบการเงินนิติบุคคล</span></h1>
+  <p id="cfgpath"></p>
+</header>
+<main>
+<section id="form">
+
+  <div class="card">
+    <h2>1 · ปีงบการเงิน (พ.ศ.)</h2>
+    <div class="seg" role="radiogroup" aria-label="โหมดปี">
+      <label><input type="radio" name="ymode" value="back" checked><span>ย้อนหลัง N ปี</span></label>
+      <label><input type="radio" name="ymode" value="custom"><span>เลือกปีเอง</span></label>
+    </div>
+    <div id="ybackBox">
+      <label for="yback">ย้อนหลัง <b id="ybackVal">3</b> ปี</label>
+      <input type="range" id="yback" min="1" max="10" value="3">
+      <label for="ylatest">ปีล่าสุดที่นับ</label>
+      <select id="ylatest"></select>
+      <p class="hint">ค่าอัตโนมัติ = ปีล่าสุดที่ปิดงบแล้ว ถ้าปีล่าสุดยังไม่มีข้อมูล ให้เลือกปีก่อนหน้า การเพิ่มจำนวนปีไม่เพิ่มจำนวนครั้งที่ดึงเว็บ เพราะหน้าบริษัทหนึ่งหน้ามีหลายปี</p>
+    </div>
+    <div id="ycustomBox" hidden><div class="list" id="ylist"></div></div>
+    <div class="chips years" id="yresolved" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <h2>2 · จังหวัด <span class="small" id="provCount"></span></h2>
+    <input type="text" id="provSearch" placeholder="ค้นหาจังหวัด…" aria-label="ค้นหาจังหวัด">
+    <div class="chips" id="provChips"></div>
+    <div class="list" id="provList"></div>
+    <p class="hint">ไม่เลือกเลย = ทั้งประเทศ (รู้จัก "กรุงเทพฯ" และ "กทม." อัตโนมัติ)</p>
+  </div>
+
+  <div class="card">
+    <h2>3 · อุตสาหกรรม (TSIC 2 หลัก)</h2>
+    <div class="list" id="tsicList" style="max-height:230px"></div>
+    <label>รหัสเพิ่มเติม (ขึ้นต้นด้วย เช่น 4711)</label>
+    <div class="chips" id="tsicExtraChips"></div>
+    <input type="text" id="tsicExtra" placeholder="พิมพ์รหัสแล้วกด Enter">
+    <p class="hint">ไม่เลือกเลย = ทุกอุตสาหกรรม ชื่อประเภทเป็นแนวทางเท่านั้น ให้ยึดรหัสจาก registry</p>
+  </div>
+
+  <div class="card">
+    <h2>4 · ประเภทและสถานะนิติบุคคล</h2>
+    <label>ประเภท (ว่าง = ทุกประเภท)</label>
+    <div class="chips" id="typesChips"></div><input type="text" id="typesIn" list="typesDl" placeholder="พิมพ์แล้วกด Enter"><datalist id="typesDl"></datalist>
+    <label>สถานะ (ว่าง = ทุกสถานะ)</label>
+    <div class="chips" id="statusChips"></div><input type="text" id="statusIn" list="statusDl" placeholder="พิมพ์แล้วกด Enter"><datalist id="statusDl"></datalist>
+    <p class="hint">จับคู่แบบมีคำนี้อยู่ในข้อความ บุคคลธรรมดาไม่ยื่นงบ จึงไม่มีตัวเลขให้ดึง</p>
+  </div>
+
+  <div class="card">
+    <h2>5 · ขนาดกิจการ</h2>
+    <div class="row">
+      <div><label for="capMin">ทุนจดทะเบียนขั้นต่ำ (บาท)</label><input type="number" id="capMin" min="0" step="any"><p class="hint" id="capMinH"></p></div>
+      <div><label for="capMax">ทุนจดทะเบียนสูงสุด (บาท)</label><input type="number" id="capMax" min="0" step="any"><p class="hint" id="capMaxH"></p></div>
+      <div><label for="revMin">รายได้รวมขั้นต่ำ (บาท)</label><input type="number" id="revMin" min="0" step="any"><p class="hint" id="revMinH"></p></div>
+      <div><label for="revMax">รายได้รวมสูงสุด (บาท)</label><input type="number" id="revMax" min="0" step="any"><p class="hint" id="revMaxH"></p></div>
+    </div>
+    <p class="hint">ช่วงรายได้กรองตอน export เพราะรู้รายได้หลังดึงข้อมูลแล้วเท่านั้น</p>
+  </div>
+
+  <div class="card">
+    <h2>6 · ขั้นสูง</h2>
+    <label>ชื่อมีคำว่า</label><div class="chips" id="nameChips"></div><input type="text" id="nameIn" placeholder="พิมพ์แล้วกด Enter">
+    <label for="incl">เฉพาะเลขนิติบุคคลเหล่านี้ (13 หลัก บรรทัดละเลข) · ถ้าใส่ ตัวกรองอื่นจะถูกข้าม</label><textarea id="incl"></textarea>
+    <label for="excl">ตัดเลขเหล่านี้ออก (13 หลัก บรรทัดละเลข)</label><textarea id="excl"></textarea>
+    <label for="cap">เพดานจำนวนบริษัทต่อรอบ</label><input type="number" id="cap" min="1" step="1" value="200">
+  </div>
+</section>
+
+<aside><div class="sticky">
+  <div class="card">
+    <h2>ผลลัพธ์ตัวอย่าง <span class="small" id="busy"></span></h2>
+    <div class="kpis">
+      <div class="kpi"><b id="kMatched">–</b><span>ตรงเงื่อนไขใน registry</span></div>
+      <div class="kpi"><b id="kSelected">–</b><span>จะดึงรอบนี้ (หลังเพดาน)</span></div>
+      <div class="kpi"><b id="kTodo">–</b><span>ยังไม่เคยดึง</span></div>
+      <div class="kpi"><b id="kHours">–</b><span>เวลาโดยประมาณ</span></div>
+    </div>
+    <div id="messages" aria-live="polite"></div>
+    <div class="bars" id="barsProv"></div>
+    <div class="bars" id="barsTsic"></div>
+  </div>
+  <div class="card">
+    <h2>บันทึก</h2>
+    <label for="savePath">ไฟล์ (ในโฟลเดอร์ config)</label>
+    <input type="text" id="savePath" placeholder="scope.yaml">
+    <p class="hint">เขียนทับเฉพาะส่วน <code>scope:</code> ส่วนอื่นของไฟล์ไม่ถูกแตะ ใช้ git ดู diff ได้ ตั้งชื่อใหม่ เช่น <code>presets/my_scope.yaml</code> เพื่อสร้างไฟล์ใหม่</p>
+    <p><button class="primary" id="save">บันทึก scope</button> <button class="ghost" id="copyYaml">คัดลอก YAML</button></p>
+    <div id="saved"></div>
+    <details><summary class="small">ดู YAML</summary><pre id="yaml"></pre></details>
+  </div>
+</div></aside>
+</main>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = id => document.getElementById(id);
+const S = {provinces:new Set(), tsic:new Set(), tsicExtra:[], types:[], statuses:[], names:[], years:new Set()};
+let OPT = null, timer = null, seq = 0;
+const nowBE = new Date().getFullYear() + 543;
+const fmt = n => n == null ? "–" : Number(n).toLocaleString("th-TH");
+function fmtTime(h){ if(h == null) return "–"; const m = h * 60; if(m < 1) return "< 1 นาที"; if(h < 1) return Math.round(m) + " นาที"; return h.toLocaleString("th-TH", {maximumFractionDigits:1}) + " ชม."; }
+
+async function api(path, body){
+  const r = await fetch(path, {method: body ? "POST" : "GET", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
+  const j = await r.json().catch(() => ({ok:false, error:"bad response"}));
+  if(!r.ok || j.ok === false){ const e = new Error(j.error || r.statusText); e.details = j.details; throw e; }
+  return j;
+}
+function el(tag, props = {}, ...kids){ const e = document.createElement(tag); Object.assign(e, props); kids.forEach(k => e.append(k)); return e; }
+function money(v){ v = Number(v); if(!isFinite(v) || v <= 0) return ""; if(v >= 1e9) return "= " + (v/1e9).toLocaleString("th-TH") + " พันล้านบาท"; if(v >= 1e6) return "= " + (v/1e6).toLocaleString("th-TH") + " ล้านบาท"; return ""; }
+function lines(id){ return $(id).value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean); }
+function num(id){ const v = $(id).value.trim(); return v === "" ? null : Number(v); }
+
+function chipInput(boxId, inputId, arr, afterChange){
+  const box = $(boxId), input = $(inputId);
+  function draw(){
+    box.replaceChildren(...arr.map((v, i) => el("span", {className:"chip"}, v, el("button", {type:"button", title:"ลบ", textContent:"×", onclick(){ arr.splice(i, 1); draw(); afterChange(); }}))));
+  }
+  function add(){ const v = input.value.trim().replace(/,$/, ""); if(v && !arr.includes(v)){ arr.push(v); } input.value = ""; draw(); afterChange(); }
+  input.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === ","){ e.preventDefault(); add(); } });
+  input.addEventListener("blur", () => { if(input.value.trim()) add(); });
+  draw();
+  return draw;
+}
+
+function collect(){
+  const custom = document.querySelector('input[name=ymode]:checked').value === "custom";
+  const tsic = [...S.tsic, ...S.tsicExtra];
+  return {
+    provinces:[...S.provinces], tsic_prefixes:tsic, juristic_types:[...S.types], statuses:[...S.statuses],
+    name_contains:[...S.names], capital_min:num("capMin"), capital_max:num("capMax"),
+    fiscal_years: custom ? [...S.years].sort() : [], years_back:Number($("yback").value),
+    latest_fiscal_year: $("ylatest").value ? Number($("ylatest").value) : null,
+    revenue_min:num("revMin"), revenue_max:num("revMax"), include_ids:lines("incl"), exclude_ids:lines("excl"),
+    max_companies:Number($("cap").value) || 200
+  };
+}
+
+function schedule(){ clearTimeout(timer); $("busy").textContent = "กำลังคำนวณ…"; timer = setTimeout(preview, 300); }
+
+async function preview(){
+  const mine = ++seq;
+  [["capMin","capMinH"],["capMax","capMaxH"],["revMin","revMinH"],["revMax","revMaxH"]].forEach(([i,h]) => $(h).textContent = money($(i).value));
+  try{
+    const r = await api("/api/preview", {scope: collect()});
+    if(mine !== seq) return;
+    $("busy").textContent = "";
+    $("kMatched").textContent = fmt(r.matched); $("kSelected").textContent = fmt(r.selected);
+    $("kTodo").textContent = fmt(r.to_fetch); $("kHours").textContent = fmtTime(r.est_hours);
+    $("yresolved").replaceChildren(...r.years.map(y => el("span", {className:"chip", textContent:y})));
+    $("yaml").textContent = r.yaml;
+    const msgs = r.warnings.map(w => el("div", {className:"msg warn", textContent:w}));
+    $("messages").replaceChildren(...msgs);
+    bars("barsProv", r.top_provinces, x => x, "จังหวัดที่พบมากสุด"); bars("barsTsic", r.top_tsic, c => c + (OPT.tsic_labels[c] ? " · " + OPT.tsic_labels[c] : ""), "อุตสาหกรรมที่พบมากสุด (TSIC)");
+  }catch(e){
+    if(mine !== seq) return;
+    $("busy").textContent = "";
+    const d = (e.details || []).join(" · ");
+    $("messages").replaceChildren(el("div", {className:"msg err", textContent:"ตั้งค่าไม่ถูกต้อง: " + e.message + (d ? " (" + d + ")" : "")}));
+  }
+}
+function bars(id, rows, label = x => x, title = ""){
+  const box = $(id); if(!rows || !rows.length){ box.replaceChildren(); return; }
+  const max = Math.max(...rows.map(r => r[1]));
+  box.replaceChildren(el("h3", {textContent:title}), ...rows.map(([k, n]) => el("div", {}, el("span", {textContent:label(k), title:label(k)}), el("i", {style:"width:" + Math.max(3, n / max * 100) + "%"}), el("span", {textContent:fmt(n), style:"text-align:right"}))));
+}
+
+function drawProvinces(){
+  const q = $("provSearch").value.trim();
+  const counts = new Map(OPT.provinces || []);
+  const names = counts.size ? [...new Set([...counts.keys(), ...OPT.all_provinces])] : OPT.all_provinces;
+  const shown = names.filter(n => !q || n.includes(q));
+  $("provList").replaceChildren(...shown.map(n => {
+    const cb = el("input", {type:"checkbox", checked:S.provinces.has(n)});
+    cb.onchange = () => { cb.checked ? S.provinces.add(n) : S.provinces.delete(n); drawProvinces(); schedule(); };
+    return el("label", {}, cb, el("span", {textContent:n}), el("span", {className:"n", textContent:counts.has(n) ? fmt(counts.get(n)) : ""}));
+  }));
+  $("provChips").replaceChildren(...[...S.provinces].map(n => el("span", {className:"chip"}, n, el("button", {type:"button", textContent:"×", title:"ลบ", onclick(){ S.provinces.delete(n); drawProvinces(); schedule(); }}))));
+  $("provCount").textContent = S.provinces.size ? "· เลือก " + S.provinces.size : "· ทั้งประเทศ";
+}
+function drawTsic(){
+  const counts = new Map(OPT.tsic2 || []);
+  const codes = [...new Set([...Object.keys(OPT.tsic_labels), ...counts.keys()])].sort();
+  $("tsicList").replaceChildren(...codes.map(c => {
+    const cb = el("input", {type:"checkbox", checked:S.tsic.has(c)});
+    cb.onchange = () => { cb.checked ? S.tsic.add(c) : S.tsic.delete(c); schedule(); };
+    return el("label", {}, cb, el("span", {textContent:c + " · " + (OPT.tsic_labels[c] || "")}), el("span", {className:"n", textContent:counts.has(c) ? fmt(counts.get(c)) : ""}));
+  }));
+}
+function drawYears(){
+  const latest = $("ylatest"); latest.replaceChildren(el("option", {value:"", textContent:"อัตโนมัติ (ปีล่าสุดที่ปิดงบ)"}));
+  for(let y = nowBE - 1; y >= nowBE - 11; y--) latest.append(el("option", {value:y, textContent:y}));
+  $("ylist").replaceChildren(...Array.from({length:11}, (_, i) => nowBE - 11 + i).map(y => {
+    const cb = el("input", {type:"checkbox", checked:S.years.has(y)});
+    cb.onchange = () => { cb.checked ? S.years.add(y) : S.years.delete(y); schedule(); };
+    return el("label", {}, cb, el("span", {textContent:y}));
+  }));
+}
+
+function load(scope){
+  S.provinces = new Set(scope.provinces);
+  const tsic2 = new Set(Object.keys(OPT.tsic_labels).concat((OPT.tsic2 || []).map(x => x[0])));
+  S.tsic = new Set(scope.tsic_prefixes.filter(p => tsic2.has(p)));
+  S.tsicExtra.splice(0, S.tsicExtra.length, ...scope.tsic_prefixes.filter(p => !tsic2.has(p)));
+  S.types.splice(0, S.types.length, ...scope.juristic_types);
+  S.statuses.splice(0, S.statuses.length, ...scope.statuses);
+  S.names.splice(0, S.names.length, ...scope.name_contains);
+  S.years = new Set(scope.fiscal_years);
+  document.querySelector('input[name=ymode][value=' + (scope.fiscal_years.length ? "custom" : "back") + ']').checked = true;
+  $("yback").value = scope.years_back; $("ybackVal").textContent = scope.years_back;
+  drawYears(); $("ylatest").value = scope.latest_fiscal_year || "";
+  [["capMin","capital_min"],["capMax","capital_max"],["revMin","revenue_min"],["revMax","revenue_max"]].forEach(([i,k]) => $(i).value = scope[k] ?? "");
+  $("incl").value = scope.include_ids.join("\n"); $("excl").value = scope.exclude_ids.join("\n"); $("cap").value = scope.max_companies;
+  syncYearMode();
+}
+function syncYearMode(){
+  const custom = document.querySelector('input[name=ymode]:checked').value === "custom";
+  $("ybackBox").hidden = custom; $("ycustomBox").hidden = !custom;
+}
+
+async function init(){
+  try{ OPT = await api("/api/options"); }catch(e){ document.body.prepend(el("div", {className:"msg err", textContent:"เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: " + e.message})); return; }
+  $("cfgpath").textContent = "ไฟล์ตั้งค่า: " + OPT.config_path + (OPT.total ? " · registry " + fmt(OPT.total) + " บริษัท" : " · ยังไม่มี registry (ตัวเลขตัวอย่างจะยังไม่แสดง)");
+  $("savePath").value = OPT.config_path.split(/[\\/]/).pop();
+  $("typesDl").replaceChildren(...(OPT.types || []).map(([v]) => el("option", {value:v})));
+  $("statusDl").replaceChildren(...(OPT.statuses || []).map(([v]) => el("option", {value:v})));
+  chipInput("tsicExtraChips", "tsicExtra", S.tsicExtra, schedule);
+  chipInput("typesChips", "typesIn", S.types, schedule);
+  chipInput("statusChips", "statusIn", S.statuses, schedule);
+  chipInput("nameChips", "nameIn", S.names, schedule);
+  load(OPT.current_scope); drawProvinces(); drawTsic();
+  document.querySelectorAll('input[name=ymode]').forEach(r => r.onchange = () => { syncYearMode(); schedule(); });
+  $("yback").oninput = () => { $("ybackVal").textContent = $("yback").value; schedule(); };
+  ["ylatest","capMin","capMax","revMin","revMax","incl","excl","cap"].forEach(i => $(i).addEventListener("input", schedule));
+  $("provSearch").addEventListener("input", drawProvinces);
+  $("copyYaml").onclick = async () => { try{ await navigator.clipboard.writeText($("yaml").textContent); $("saved").replaceChildren(el("div", {className:"msg ok", textContent:"คัดลอก YAML แล้ว"})); }catch(e){ $("saved").replaceChildren(el("div", {className:"msg warn", textContent:"คัดลอกอัตโนมัติไม่ได้ ให้เปิด 'ดู YAML' แล้วคัดลอกเอง"})); } };
+  $("save").onclick = async () => {
+    $("save").disabled = true;
+    try{
+      const r = await api("/api/save", {scope: collect(), path: $("savePath").value.trim() || null});
+      $("saved").replaceChildren(el("div", {className:"msg ok"}, "บันทึกที่ " + r.saved + " แล้ว รันต่อ: ", el("code", {textContent:r.command})));
+    }catch(e){ $("saved").replaceChildren(el("div", {className:"msg err", textContent:"บันทึกไม่สำเร็จ: " + e.message + ((e.details || []).length ? " (" + e.details.join(" · ") + ")" : "")})); }
+    $("save").disabled = false;
+  };
+  preview();
+}
+init();
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import os
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
@@ -45,7 +46,12 @@ class Scope(_Base):
     name_contains: list[str] = Field(default_factory=list)
     capital_min: float | None = None
     capital_max: float | None = None
-    fiscal_years: list[int] = Field(default_factory=lambda: [2566, 2567])
+    # Years to collect. Either list them explicitly (fiscal_years wins when non-empty) or say
+    # "the last N years" with years_back. latest_fiscal_year null = last completed year
+    # (current Buddhist-Era year minus 1). Set it by hand if the newest year is not filed yet.
+    fiscal_years: list[int] = Field(default_factory=list)
+    years_back: int = Field(3, ge=1, le=15)
+    latest_fiscal_year: int | None = None
     revenue_min: float | None = None
     revenue_max: float | None = None
     include_ids: list[str] = Field(default_factory=list)
@@ -91,6 +97,19 @@ class Scope(_Base):
     def _years_to_buddhist_era(cls, v: list[int]) -> list[int]:
         # DBD reports in Buddhist Era. Accept Gregorian years too and convert.
         return sorted({y + 543 if y < 2400 else y for y in v})
+
+    @field_validator("latest_fiscal_year")
+    @classmethod
+    def _latest_to_buddhist_era(cls, v: int | None) -> int | None:
+        return None if v is None else (v + 543 if v < 2400 else v)
+
+    def effective_years(self, today: date | None = None) -> list[int]:
+        """The fiscal years (B.E.) this scope collects, oldest first."""
+        if self.fiscal_years:
+            return list(self.fiscal_years)
+        today = today or date.today()
+        latest = self.latest_fiscal_year or (today.year + 543 - 1)
+        return list(range(latest - self.years_back + 1, latest + 1))
 
 
 class RegistryCfg(_Base):

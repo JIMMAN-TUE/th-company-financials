@@ -3,7 +3,7 @@
 scope:
   provinces: [กรุงเทพมหานคร]
   tsic_prefixes: ["55"]              # TSIC 55 = accommodation (verify the code format in your registry CSV)
-  fiscal_years: [2567]
+  years_back: 3                      # last 3 closed fiscal years
   max_companies: 300
 
 registry:
