@@ -7,7 +7,7 @@ The owner and team communicate in Thai and English; reply in the language the us
 ## Commands (run from the repo root)
 
 ```bash
-make test                                   # 70 offline unit tests, no network needed
+make test                                   # 71 offline unit tests, no network needed
 python -m thfin plan                        # what the scope selects + time estimate. Fetches nothing
 python -m thfin registry-headers            # show registry CSV headers and the detected column mapping
 python -m thfin probe <13-digit-id>         # fetch ONE page and show what the parser extracts

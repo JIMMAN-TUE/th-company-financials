@@ -7,6 +7,7 @@ Unknown keys are rejected so typos fail loudly instead of silently widening the 
 from __future__ import annotations
 
 import copy
+import os
 import re
 from pathlib import Path
 from typing import Any, Literal
@@ -166,6 +167,12 @@ def load_config(path: str | Path, overrides: list[str] | None = None) -> Config:
     raw = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
     if not isinstance(raw, dict):
         raise ConfigError(f"{p}: top level must be a mapping")
+    # Precedence: --set  >  environment variable  >  YAML. Keeps personal contact out of git.
+    env_ua = os.environ.get("THFIN_USER_AGENT", "").strip()
+    if env_ua:
+        if not isinstance(raw.get("runtime"), dict):
+            raw["runtime"] = {}
+        raw["runtime"]["user_agent"] = env_ua
     raw = apply_overrides(raw, overrides or [])
     try:
         return Config.model_validate(raw)

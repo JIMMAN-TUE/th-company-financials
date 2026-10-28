@@ -2,7 +2,7 @@
 
 **สรุปภาษาไทย:** โปรเจกต์นี้ดึงรายได้ ต้นทุนขาย ค่าใช้จ่าย และกำไรของนิติบุคคลไทยจากแหล่งข้อมูลทางการ
 ปรับขอบเขต (จังหวัด, อุตสาหกรรม TSIC, ทุนจดทะเบียน, ปีงบ, ช่วงรายได้) ได้จากไฟล์ `config/scope.yaml`
-โค้ดและเทสต์ 70 ข้อผ่านครบ แต่ **ยังไม่เคยทดสอบกับเว็บ DBD จริง** (เครื่องที่สร้างต่อเว็บนั้นไม่ได้)
+โค้ดและเทสต์ 71 ข้อผ่านครบ แต่ **ยังไม่เคยทดสอบกับเว็บ DBD จริง** (เครื่องที่สร้างต่อเว็บนั้นไม่ได้)
 งานแรกของคนที่รับช่วงคือยืนยัน 4 ข้อใน "First steps" ด้านล่าง ก่อนรันจริง
 
 ## State (2026-10-29)
@@ -19,7 +19,7 @@
 | **Live DBD fetch** | **not verified** |
 | Registry CSV from the real DBD open data | **not verified** |
 
-Tests: `make test` (70, offline). Lint (`ruff`) could not be installed in the build sandbox, so the
+Tests: `make test` (71, offline). Lint (`ruff`) could not be installed in the build sandbox, so the
 CI lint job is the first time it runs; fix any findings it reports.
 
 ## First steps (needs a machine that can reach DBD sites)
@@ -27,7 +27,8 @@ CI lint job is the first time it runs; fix any findings it reports.
 1. **Registry**: download the DBD open-data CSV(s) into `data/registry/`, run
    `python -m thfin registry-headers`. Fix `registry.columns`, the status text in `scope.statuses` and the
    TSIC format in `scope.tsic_prefixes` until `plan` shows plausible counts.
-2. **Terms**: read DataWarehouse+ terms, fill in `docs/LEGAL.md`, set a real `runtime.user_agent`.
+2. **Terms**: read DataWarehouse+ terms, fill in `docs/LEGAL.md`, set a real contact via the
+   `THFIN_USER_AGENT` environment variable (or `runtime.user_agent`).
 3. **Probe**: `python -m thfin probe <id of a company you can also view in the browser>`.
    - Tables found and years/fields printed: compare with the website by eye, then go to 4.
    - 0 tables or empty result: the numbers are probably loaded by a script. Find the JSON/XHR endpoint in

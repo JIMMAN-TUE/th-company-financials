@@ -3,7 +3,7 @@
 เครื่องมือดึง **รายได้ ต้นทุนขาย ค่าใช้จ่าย กำไรสุทธิ และสินทรัพย์รวม** ของนิติบุคคลไทยจากแหล่งข้อมูลทางการ
 โดยกำหนดขอบเขต (scope) ได้จากไฟล์ YAML ไฟล์เดียว เพิ่มหรือลดได้ตลอด และรันต่อจากที่ค้างไว้ได้
 
-> **สถานะ:** โค้ดและเทสต์ 70 ข้อผ่านครบ แต่ **ยังไม่เคยทดสอบกับเว็บ DBD จริง** (เครื่องที่สร้างต่อเว็บนั้นไม่ได้)
+> **สถานะ:** โค้ดและเทสต์ 71 ข้อผ่านครบ แต่ **ยังไม่เคยทดสอบกับเว็บ DBD จริง** (เครื่องที่สร้างต่อเว็บนั้นไม่ได้)
 > ก่อนรันจริงให้ทำตาม [docs/HANDOVER.md](docs/HANDOVER.md) หัวข้อ "First steps" ก่อน
 
 ## ข้อจำกัดที่ต้องรู้ก่อน
@@ -19,12 +19,13 @@
 git clone <repo-url> && cd th-company-financials
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-make test                                  # ต้องผ่าน 70 ข้อ ไม่ต้องใช้เน็ต
+make test                                  # ต้องผ่าน 71 ข้อ ไม่ต้องใช้เน็ต
 ```
 
 1. ดาวน์โหลดไฟล์ CSV ทะเบียนนิติบุคคลจาก DBD Open Data ไปไว้ที่ `data/registry/`
    แล้วรัน `python -m thfin registry-headers` เพื่อดูว่าตรวจจับชื่อคอลัมน์ได้ครบไหม
-2. ใส่อีเมลติดต่อจริงใน `runtime.user_agent` ของ `config/scope.yaml` (ถ้ายังเป็น `CHANGE-ME` โปรแกรมจะไม่ยอมรัน)
+2. ตั้งอีเมลติดต่อจริงด้วย environment variable `THFIN_USER_AGENT="thfin-research/0.1 (+mailto:you@company.com)"`
+   (หรือแก้ `runtime.user_agent` ใน `config/scope.yaml`) ถ้ายังเป็น `CHANGE-ME` โปรแกรมจะไม่ยอมรัน
 3. ตั้ง scope แล้วรัน `python -m thfin plan` เพื่อดูจำนวนบริษัทและเวลาที่ต้องใช้
 4. `python -m thfin probe <เลขนิติบุคคล 13 หลัก>` เพื่อเช็กว่าดึงตัวเลขของบริษัทหนึ่งได้ถูกต้อง
 5. `python -m thfin run --limit 25` แล้ว `python -m thfin export` (ได้ CSV และ XLSX ใน `data/exports/`)
@@ -68,7 +69,7 @@ cache กันดึงซ้ำ · รันเกิน 1,000 บริษั
 ```
 config/scope.yaml        ขอบเขตและค่าตั้งทั้งหมด     config/presets/   ตัวอย่าง scope
 src/thfin/               config · sources/registry · http · parsers · pipeline · store · cli
-tests/                   70 เทสต์ ใช้ข้อมูลบริษัทสมมติ ไม่ต้องใช้เน็ต
-docs/                    DATA_SOURCES · LEGAL · HANDOVER
+tests/                   71 เทสต์ ใช้ข้อมูลบริษัทสมมติ ไม่ต้องใช้เน็ต
+docs/                    DATA_SOURCES · LEGAL · HANDOVER · CLAUDE_CODE_SETUP
 .claude/commands/        slash command สำหรับทีม
 ```

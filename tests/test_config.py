@@ -1,6 +1,8 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from pydantic import ValidationError
 
@@ -61,6 +63,16 @@ class LoadTests(unittest.TestCase):
     def test_missing_file(self):
         with self.assertRaises(ConfigError):
             load_config("/nonexistent/config.yaml")
+
+    def test_user_agent_env_var_beats_yaml_and_loses_to_set(self):
+        base = ROOT / "config" / "scope.yaml"
+        with mock.patch.dict(os.environ, {"THFIN_USER_AGENT": "thfin/0.1 (+mailto:team@example.org)"}):
+            self.assertIn("team@example.org", load_config(base).runtime.user_agent)
+            cfg = load_config(base, ["runtime.user_agent=from-set"])
+            self.assertEqual(cfg.runtime.user_agent, "from-set")
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("THFIN_USER_AGENT", None)
+            self.assertIn("CHANGE-ME", load_config(base).runtime.user_agent)
 
     def test_set_overrides_scope_end_to_end(self):
         cfg = load_config(ROOT / "config" / "scope.yaml", ["scope.provinces=[ชลบุรี, ระยอง]", "scope.fiscal_years=[2024]"])

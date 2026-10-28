@@ -35,7 +35,8 @@ runtime:
   db_path: data/thfin.sqlite
   cache_dir: .cache/http
   export_dir: data/exports
-  user_agent: "thfin-research/0.1 (+mailto:CHANGE-ME@example.com)"   # REQUIRED: set a real contact before `run`
+  # REQUIRED before `run`. Prefer the env var THFIN_USER_AGENT (beats this value, keeps emails out of git)
+  user_agent: "thfin-research/0.1 (+mailto:CHANGE-ME@example.com)"
   requests_per_second: 0.5           # be gentle. Do not raise without a reason
   timeout_seconds: 30
   max_retries: 3
