@@ -98,6 +98,67 @@ class HttpTests(unittest.TestCase):
             c.get(URL.format(jid=str(i)))
         self.assertGreaterEqual(clock.now - start, 1.0)  # >= 2 gaps of 0.5 s
 
+    def test_crawl_delay_spaces_first_page_and_subsequent_requests(self):
+        u = URL.format(jid="1")
+        c, t, clock = client({ROBOTS: (200, {}, b"User-agent: *\nCrawl-delay: 10"), u: OK})
+        times = []
+        original = t.get
+
+        def timed_get(*args):
+            times.append(clock.now)
+            return original(*args)
+
+        t.get = timed_get
+        c.get(u)
+        c.get(u, use_cache=False)
+        self.assertEqual(times, [1000, 1010, 1020])  # robots then two company pages
+        before = clock.now
+        c.get(u)  # cache hit doesn't sleep or fetch
+        self.assertEqual(clock.now, before)
+        self.assertEqual(t.calls.count(ROBOTS), 1)
+
+    def test_slower_config_rate_wins_over_crawl_delay(self):
+        u = URL.format(jid="1")
+        c, _, clock = client({ROBOTS: (200, {}, b"User-agent: *\nCrawl-delay: 1"), u: OK},
+                             requests_per_second=0.25)
+        c.get(u)
+        c.get(u, use_cache=False)
+        self.assertEqual(clock.slept, [4, 4])
+
+    def test_user_agent_specific_crawl_delay(self):
+        u = URL.format(jid="1")
+        robots = b"User-agent: thfin-test\nCrawl-delay: 7\n\nUser-agent: *\nCrawl-delay: 10"
+        c, _, clock = client({ROBOTS: (200, {}, robots), u: OK})
+        c.get(u)
+        self.assertEqual(clock.slept, [7])
+
+    def test_retry_still_respects_crawl_delay(self):
+        u = URL.format(jid="1")
+        c, t, clock = client({ROBOTS: (200, {}, b"User-agent: *\nCrawl-delay: 10"),
+                              u: [(503, {}, b""), OK]})
+        c.get(u)
+        self.assertEqual(t.calls.count(u), 2)
+        self.assertEqual(clock.now, 1020)
+
+    def test_crawl_delay_does_not_leak_to_another_origin(self):
+        first, second = "https://one.example", "https://two.example"
+        c, _, clock = client({first + "/robots.txt": (200, {}, b"User-agent: *\nCrawl-delay: 10"),
+                              second + "/robots.txt": (404, {}, b""),
+                              first + "/page": OK, second + "/page": OK},
+                             allowed_hosts=["one.example", "two.example"], requests_per_second=1)
+        c.get(first + "/page")
+        c.get(second + "/page")
+        self.assertEqual(clock.slept, [10, 1, 1])
+
+    def test_browser_cache_does_not_reuse_plain_html(self):
+        u = URL.format(jid="1")
+        c, t, _ = client({u: [(200, {}, b"plain"), (200, {}, b"rendered")]})
+        self.assertEqual(c.get(u).body, b"plain")
+        c.rt.transport = "chromium"
+        self.assertEqual(c.get(u).body, b"rendered")
+        self.assertEqual(c.get(u).body, b"rendered")
+        self.assertEqual(t.calls.count(u), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
