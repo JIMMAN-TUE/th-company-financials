@@ -138,3 +138,19 @@ Chromium rendering is now an optional backend in the same package (`pip install 
 selected by `--set runtime.transport=chromium`. Robots are read as plain HTTP before browser launch.
 All page/script/XHR requests are checked; redirects stop and require a final allowed URL.
 Real Chromium tests use a fictional loopback site. No live DBD Chromium check has been made.
+
+## Windows scope application (2026-10-29)
+
+`feat/scope-desktop-app` builds on PR #2. `thfin app` adds an application panel to the existing
+scope widget: upload registry CSVs and statement files, start/stop scoped background jobs,
+prepare a manual-export queue, watch Downloads, inspect results and download CSV/XLSX.
+A running job uses the validated scope snapshot from its start. Import and export both filter
+company IDs as well as fiscal years/revenue, so results from other scopes do not leak into exports.
+The existing `thfin ui` remains the offline scope editor.
+
+The Windows app is an onedir ZIP built by `.github/workflows/windows-app.yml`: Python,
+thfin dependencies and Chromium are included. `thfin.exe --self-test` verifies the frozen UI,
+registry upload, scope selection, queue generation and download using a fictional loopback fixture
+before publishing the build artifact. End users do not install Python. Their workspace is separate
+from the package, under `%LOCALAPPDATA%\thfin`; no real data or personal settings enter the ZIP.
+See `docs/WINDOWS_APP.md` for distribution and use. No live DBD access was tested.

@@ -132,10 +132,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
 <aside><div class="sticky">
   <div class="card">
-    <h2>ผลลัพธ์ตัวอย่าง <span class="small" id="busy"></span></h2>
+    <h2>ขอบเขตที่เลือก <span class="small" id="busy"></span></h2>
     <div class="kpis">
       <div class="kpi"><b id="kMatched">–</b><span>ตรงเงื่อนไขใน registry</span></div>
-      <div class="kpi"><b id="kSelected">–</b><span>จะดึงรอบนี้ (หลังเพดาน)</span></div>
+      <div class="kpi"><b id="kSelected">–</b><span>บริษัทที่เลือก (หลังเพดาน)</span></div>
       <div class="kpi"><b id="kTodo">–</b><span>ยังไม่เคยดึง</span></div>
       <div class="kpi"><b id="kHours">–</b><span>เวลาโดยประมาณ</span></div>
     </div>
@@ -143,6 +143,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     <div class="bars" id="barsProv"></div>
     <div class="bars" id="barsTsic"></div>
   </div>
+  __APP_PANEL__
   <div class="card">
     <h2>บันทึก</h2>
     <label for="savePath">ไฟล์ (ในโฟลเดอร์ config)</label>
@@ -200,7 +201,7 @@ function collect(){
   };
 }
 
-function schedule(){ clearTimeout(timer); $("busy").textContent = "กำลังคำนวณ…"; timer = setTimeout(preview, 300); }
+function schedule(){ clearTimeout(timer); $("busy").textContent = "กำลังคำนวณ…"; document.dispatchEvent(new Event("scopechange")); timer = setTimeout(preview, 300); }
 
 async function preview(){
   const mine = ++seq;
@@ -310,5 +311,6 @@ async function init(){
 }
 init();
 </script>
+__APP_SCRIPT__
 </body>
 </html>

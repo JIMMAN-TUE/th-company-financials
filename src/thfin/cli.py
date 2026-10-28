@@ -56,6 +56,11 @@ def _parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("ui", parents=[common], help="open the local scope-builder UI (nothing is fetched)")
     sp.add_argument("--port", type=int, default=8765, help="0 = pick a free port")
     sp.add_argument("--no-browser", action="store_true")
+
+    sp = sub.add_parser("app", help="open the local Windows-ready collection application")
+    sp.add_argument("--workspace", type=Path, help="user workspace; defaults to LocalAppData/thfin on Windows")
+    sp.add_argument("--port", type=int, default=0)
+    sp.add_argument("--no-browser", action="store_true")
     return p
 
 
@@ -189,10 +194,17 @@ def cmd_ui(args) -> int:
     return serve(args.config, args.overrides, args.port, not args.no_browser)
 
 
+def cmd_app(args) -> int:
+    from .desktop import serve_app
+
+    return serve_app(args.workspace, args.port, not args.no_browser)
+
+
 COMMANDS = {
     "plan": cmd_plan, "run": cmd_run, "probe": cmd_probe, "registry-headers": cmd_registry_headers,
     "import-files": cmd_import_files, "export": cmd_export, "status": cmd_status, "ui": cmd_ui,
     "queue": cmd_queue, "watch-downloads": cmd_watch_downloads,
+    "app": cmd_app,
 }
 
 

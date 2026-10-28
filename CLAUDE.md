@@ -18,6 +18,7 @@ python -m thfin import-files                # offline mode: parse statements exp
 python -m thfin export                      # CSV (+XLSX) from the SQLite database
 python -m thfin status
 python -m thfin ui                          # local scope-builder widget (127.0.0.1, token-protected, no internet)
+python -m thfin app                         # local application; uploads, scoped jobs, progress, downloads
 # any command accepts:  --config config/presets/hotels_bangkok.yaml   --set scope.provinces=ชลบุรี,ระยอง
 ```
 
@@ -41,6 +42,7 @@ Install: `python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]
 |---|---|
 | `src/thfin/config.py` | pydantic config; rejects unknown keys; `--set` overrides; `Scope.effective_years()` |
 | `src/thfin/scopeio.py`, `uiserver.py`, `ui/index.html` | scope-builder widget: rewrite the `scope:` block, live preview, local server |
+| `src/thfin/app.py`, `desktop.py`, `ui/app.*` | Windows/local app: isolated user workspace, scoped background jobs, upload/export |
 | `src/thfin/sources/registry.py` | company universe from registry CSVs; column auto-detect; scope matching |
 | `src/thfin/http.py` | polite client: host allowlist, robots.txt, rate limit, retries, disk cache |
 | `src/thfin/parsers/statement.py` | table -> revenue/cost/profit by Thai/English label patterns (`FIELD_PATTERNS`) |

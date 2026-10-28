@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
 browser = ["playwright>=1.48"]
+desktop = ["playwright>=1.48", "pyinstaller>=6"]
 
 [project.scripts]
 thfin = "thfin.cli:main"
@@ -25,7 +26,7 @@ thfin = "thfin.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-thfin = ["ui/*.html"]
+thfin = ["ui/*.html", "ui/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

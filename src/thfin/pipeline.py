@@ -85,6 +85,7 @@ def run(
     limit: int | None = None,
     refetch: bool = False,
     progress: Callable[[str], None] = print,
+    should_stop: Callable[[], bool] = lambda: False,
 ) -> RunSummary:
     if "CHANGE-ME" in cfg.runtime.user_agent:
         raise ConfigError(
@@ -100,6 +101,10 @@ def run(
     years_wanted = cfg.scope.effective_years()
     consecutive_errors = 0
     for i, company in enumerate(todo, 1):
+        if should_stop():
+            summary.aborted = "cancelled"
+            break
+        progress(f"[{i}/{len(todo)}] {company.juristic_id} {company.name_th}")
         url = cfg.financials.url_template.format(juristic_id=company.juristic_id)
         summary.attempted += 1
         try:
@@ -143,13 +148,18 @@ def run(
     return summary
 
 
-def import_files(cfg: Config, store: Store, progress: Callable[[str], None] = print) -> RunSummary:
+def import_files(cfg: Config, store: Store, progress: Callable[[str], None] = print, *,
+                 allowed_ids: set[str] | None = None,
+                 should_stop: Callable[[], bool] = lambda: False) -> RunSummary:
     """Offline mode: parse statements you exported manually (xlsx / html) from DBD DataWarehouse+."""
     folder = Path(cfg.financials.files_dir)
     if not folder.is_dir():
         raise ConfigError(f"financials.files_dir not found: {folder}")
     summary = RunSummary()
     for path in sorted(folder.iterdir()):
+        if should_stop():
+            summary.aborted = "cancelled"
+            break
         if path.suffix.lower() not in {".xlsx", ".xlsm", ".html", ".htm"}:
             continue
         m = re.search(r"(?<!\d)(\d{13})(?!\d)", path.name)
@@ -157,6 +167,8 @@ def import_files(cfg: Config, store: Store, progress: Callable[[str], None] = pr
             progress(f"skip {path.name}: no 13-digit juristic ID in the file name")
             continue
         jid = m.group(1)
+        if allowed_ids is not None and jid not in allowed_ids:
+            continue
         summary.attempted += 1
         try:
             data = (

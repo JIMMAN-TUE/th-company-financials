@@ -17,3 +17,6 @@ data/statements/*
 
 # Default manual-export queue and its local progress/lock files
 /manual-queue.html*
+/build/
+/dist/
+/*.spec
