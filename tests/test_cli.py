@@ -15,11 +15,11 @@ def write_cfg(tmp: Path, user_agent="thfin-test/0.1 (+mailto:t@example.org)") ->
     p.write_text(
         f"""
 scope: {{provinces: [สมุทรปราการ, สมุทรสาคร], tsic_prefixes: ["10"], fiscal_years: [2567]}}
-registry: {{csv_paths: ["{REGISTRY_CSV}"]}}
+registry: {{csv_paths: ["{REGISTRY_CSV.as_posix()}"]}}
 runtime:
-  db_path: "{tmp}/t.sqlite"
-  cache_dir: "{tmp}/cache"
-  export_dir: "{tmp}/out"
+  db_path: "{tmp.as_posix()}/t.sqlite"
+  cache_dir: "{tmp.as_posix()}/cache"
+  export_dir: "{tmp.as_posix()}/out"
   user_agent: "{user_agent}"
 """,
         encoding="utf-8",
