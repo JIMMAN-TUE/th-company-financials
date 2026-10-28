@@ -12,6 +12,10 @@ but not confirmed; **unknown** = needs checking by someone with network access.
   juristic ID, province, TSIC, status, registered capital) or only aggregates. The page for the dataset
   we read described itself as statistical data. If the datasets are aggregates only, ask DBD for the
   per-company registry extract, or build the list of IDs from another source and use `scope.include_ids`.
+- **seen** (2026-10-28): `opendata.dbd.go.th` sits behind Imperva; reachable from a Thai IP, blocked (403)
+  from a US cloud IP. robots.txt disallows `/api/`, `/revision/`, `/dataset/rate/`, dataset history and sets
+  `Crawl-Delay: 10`. Datasets found by search: `dataset_11_01` (newly registered, monthly) and
+  `dataset_11_02` (dissolved, monthly); file downloads appear to be served from `openapi.dbd.go.th` (assumed).
 - How it is used: download the CSV(s) into `data/registry/`, run `python -m thfin registry-headers`,
   fix `registry.columns` if needed.
 
@@ -20,6 +24,10 @@ but not confirmed; **unknown** = needs checking by someone with network access.
 - Site: `datawarehouse.dbd.go.th`.
 - **seen** (third-party article): web only, no login/registration needed, shows balance sheet and
   profit-and-loss statements per company, export to PDF or Excel.
+- **seen** (2026-10-28): every path, including `/robots.txt`, answers with an Imperva Incapsula bot challenge
+  (302 to itself with a "Loading" page) from both a Thai IP and a cloud IP. Automated access is therefore not
+  possible without working around the block, which this project does not do. Use `financials.mode: files`
+  or ask DBD for access.
 - **unknown**: URL pattern, whether tables are in static HTML or loaded by script, any API, usage limits,
   terms of use for automated access, how many years are shown.
 - Two ways to use it in this project: `financials.mode: web` (fetch pages, needs the URL and parser

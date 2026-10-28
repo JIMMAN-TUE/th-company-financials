@@ -10,7 +10,7 @@ from thfin.config import load_config
 from thfin.uiserver import PROVINCES, ScopeUI, make_server
 
 
-def write_config(root: Path, csv_path: str = str(REGISTRY_CSV)) -> Path:
+def write_config(root: Path, csv_path: str = REGISTRY_CSV.as_posix()) -> Path:
     (root / "config").mkdir()
     p = root / "config" / "scope.yaml"
     p.write_text(
@@ -21,7 +21,7 @@ scope:
 registry:
   csv_paths: ["{csv_path}"]
 runtime:
-  db_path: "{root}/t.sqlite"
+  db_path: "{root.as_posix()}/t.sqlite"
   user_agent: "thfin-test/0.1 (+mailto:t@example.org)"
 """,
         encoding="utf-8",
@@ -104,7 +104,7 @@ class UiTests(unittest.TestCase):
     def test_filter_on_a_column_the_registry_lacks_is_flagged(self):
         csv_path = self.root / "thin.csv"
         csv_path.write_text("JURISTIC_ID,JURISTIC_NAME_TH\n0105500000001,x\n", encoding="utf-8")
-        ui = ScopeUI(write_config(Path(tempfile.mkdtemp()), str(csv_path)))
+        ui = ScopeUI(write_config(Path(tempfile.mkdtemp()), csv_path.as_posix()))
         r = ui.preview({"provinces": ["ชลบุรี"], "juristic_types": [], "statuses": []})
         self.assertTrue(any("province" in w for w in r["warnings"]))
 

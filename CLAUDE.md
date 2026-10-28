@@ -71,4 +71,7 @@ These could not be checked when the project was created (the build sandbox could
    Run `registry-headers` and adjust `registry.columns` / `scope`.
 4. The terms of use for automated access to DataWarehouse+ are unconfirmed. See `docs/LEGAL.md`.
 
+Status 2026-10-28: DataWarehouse+ answers every request (robots.txt included) with an Imperva Incapsula
+bot challenge, so `mode: web` is blocked; do not work around it. Details in `docs/HANDOVER.md` "Findings".
+
 See `docs/HANDOVER.md` for status and next steps, and `docs/DATA_SOURCES.md` for sources.
