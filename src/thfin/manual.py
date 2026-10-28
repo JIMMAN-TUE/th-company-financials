@@ -135,7 +135,7 @@ class DownloadWatcher:
             raise ConfigError(f"download directory not found: {self.directory}")
         self.state = _load(self.path)
         self.destination = Path(cfg.financials.files_dir).resolve()
-        if str(self.destination) != self.state["files_dir"]:
+        if self.destination != Path(self.state["files_dir"]).resolve():
             raise ConfigError("financials.files_dir differs from the saved queue; use the original config")
         if self.destination == self.directory:
             raise ConfigError("download directory and financials.files_dir must differ")
