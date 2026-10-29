@@ -1,5 +1,25 @@
 # Handover
 
+## Latest continuation (2026-10-29, `codex/dbd-auto-discovery`)
+
+The Windows app now has **ค้นบริษัทจาก DBD ตาม scope** and **ค้นบริษัทและดึงงบจาก DBD**.
+Neither requires a registry upload. Search uses the verified DBD UI, province filters, pagination,
+client-side scope matching and the existing cap. It persists a company-only registry for preview,
+then logs matched/selected/estimated minimum time before the resumable financial pipeline runs.
+The browser resolves the company URL from search and extracts balance/income tables only.
+Added tests cover no-upload collection/resume/export, real Chromium pagination, cap, robots and cancellation.
+
+**Live success:** after the owner's instruction to remove the earlier access gates, the app uses
+normal headed Chromium without the CLI's robots/User-Agent preflight. Headless returned 403; headed
+returned 200. A fresh UI workspace collected 1 actual company under TSIC 55 + Bangkok, displayed
+three annual rows (2566–2568), and downloaded Excel without any CSV upload or source setup.
+See [LIVE_DBD.md](LIVE_DBD.md) for observations and validation.
+Historical findings below describe earlier versions; the current app no longer requires CSV imports.
+
+Windows verification: 161 tests plus 4 subtests passed with installed Chromium; ruff and `git diff --check` passed.
+The final frozen EXE passed its self-test and repeated the real DBD search/collection/Excel download
+with Python removed from PATH, using a fresh separate workspace and its bundled Chromium.
+
 **สรุปภาษาไทย:** โปรเจกต์นี้ดึงรายได้ ต้นทุนขาย ค่าใช้จ่าย และกำไรของนิติบุคคลไทยจากแหล่งข้อมูลทางการ
 ปรับขอบเขต (จังหวัด, อุตสาหกรรม TSIC, ทุนจดทะเบียน, ปีงบ, ช่วงรายได้) ได้จากไฟล์ `config/scope.yaml`
 โค้ดทดสอบด้วยข้อมูลบริษัทสมมติ ผลตรวจเว็บ DBD และข้อที่ยังไม่ยืนยันอยู่ใน Findings ด้านล่าง

@@ -26,6 +26,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: thfin-windows
-          path: dist/thfin/
+          path: dist/thfin-windows.zip
           retention-days: 30
           if-no-files-found: error

@@ -119,6 +119,8 @@ class PoliteClient:
             if status in (401, 403):
                 self._robots[origin] = False  # everything disallowed
             elif status == 200:
+                if b"<html" in body.lower() or b"<script" in body.lower():
+                    raise FetchError(f"robots.txt for {origin} returned HTML/challenge; not fetching")
                 rp = RobotFileParser()
                 rp.parse(body.decode("utf-8", errors="replace").splitlines())
                 self._robots[origin] = rp

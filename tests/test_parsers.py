@@ -27,6 +27,17 @@ class NumberTests(unittest.TestCase):
 
 
 class StatementTests(unittest.TestCase):
+    def test_dbd_amount_columns_and_new_labels_with_fictional_values(self):
+        from tests.test_dbd import FINANCE
+        data = parse_html(FINANCE)
+        self.assertEqual(data[2568]["revenue_total"], 120_000)
+        self.assertEqual(data[2568]["revenue_sales"], 110_000)
+        self.assertEqual(data[2568]["total_expenses"], 80_000)
+        self.assertEqual(data[2568]["cost_of_sales"], 50_000)
+        self.assertEqual(data[2568]["net_profit"], 20_000)
+        self.assertEqual(data[2567]["net_profit"], -5_000)
+        self.assertEqual(data[2568]["total_assets"], 600_000)
+
     def test_html_fixture(self):
         data = parse_html(STATEMENT_HTML.read_text(encoding="utf-8"))
         self.assertEqual(sorted(data), [2566, 2567])

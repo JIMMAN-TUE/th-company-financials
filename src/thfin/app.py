@@ -25,7 +25,7 @@ from .sources.registry import load_universe, read_headers, resolve_columns
 from .store import Store, write_csv, write_xlsx
 
 UPLOAD_LIMIT = 24 * 1024 * 1024
-ACTIONS = {"collect", "queue", "watch", "import"}
+ACTIONS = {"collect", "queue", "watch", "import", "discover", "auto"}
 
 
 def default_workspace() -> Path:
@@ -169,17 +169,20 @@ class AppController:
                 raise ConfigError("ตัวเลือกประมวลผลใหม่ไม่ถูกต้อง")
             store = Store(cfg.runtime.db_path) if Path(cfg.runtime.db_path).exists() else None
             try:
-                plan = build_plan(cfg, store, refetch=refetch and action == "collect")
+                plan = (None if action in {"discover", "auto"} else
+                        build_plan(cfg, store, refetch=refetch and action == "collect"))
             finally:
                 if store:
                     store.close()
-            if not plan.universe.companies:
+            if plan is not None and not plan.universe.companies:
                 raise ConfigError("ยังไม่มีบริษัทตรงขอบเขตที่เลือก; โหลดทะเบียนและตรวจตัวกรองก่อน")
             limit = data.get("limit", 25)
             if type(limit) is not int or not 1 <= limit <= 1000:
                 raise ConfigError("จำนวนบริษัทต่อรอบต้องอยู่ระหว่าง 1 ถึง 1000")
             if action == "collect" and "CHANGE-ME" in cfg.runtime.user_agent:
                 raise ConfigError("ใส่ข้อมูลติดต่อของคุณในส่วนตั้งค่าแหล่งข้อมูลก่อนเริ่มดึง")
+            if action in {"auto", "discover"} and not (cfg.scope.tsic_prefixes or cfg.scope.include_ids):
+                raise ConfigError("เลือกหมวด TSIC หรือระบุเลขทะเบียนก่อนค้น DBD")
             queue = None
             directory = None
             if action == "watch":
@@ -190,8 +193,8 @@ class AppController:
             self._stop.clear()
             self._job = {"id": uuid.uuid4().hex, "action": action, "status": "running", "error": "",
                          "logs": [], "summary": None, "scope": cfg.scope.model_dump(), "refetch": refetch,
-                         "plan": {"matched": plan.universe.total_matched, "selected": len(plan.universe.companies),
-                                  "pending": plan.est_requests, "est_hours": plan.est_hours}}
+                         "plan": ({"matched": plan.universe.total_matched, "selected": len(plan.universe.companies),
+                                   "pending": plan.est_requests, "est_hours": plan.est_hours} if plan else None)}
             self._thread = threading.Thread(target=self._work, args=(action, cfg, limit, queue, directory, refetch), daemon=True)
             self._thread.start()
             return self.status()
@@ -227,7 +230,9 @@ class AppController:
     def _work(self, action, cfg, limit, queue, directory, refetch):
         store = None
         try:
-            if action == "queue":
+            if action in {"discover", "auto"}:
+                summary = self._automatic(action, cfg, limit, refetch)
+            elif action == "queue":
                 queue = self.root / "queues" / (uuid.uuid4().hex + ".html")
                 count = create_queue(cfg, queue)
                 temp = self._queue_file.with_suffix(".tmp")
@@ -268,9 +273,48 @@ class AppController:
             if store:
                 store.close()
 
+    def _automatic(self, action, cfg, limit, refetch):
+        from .dbd import DBDClient, DBDSession, save_registry
+        self._log("กำลังค้น DBD ตาม scope · จำนวนยังไม่ทราบจนกว่าจะค้นเสร็จ")
+        with DBDSession(cfg, self._log, self._stop.is_set) as session:
+            discovery = session.discover()
+            if self._stop.is_set():
+                return {"aborted": "cancelled"}
+            registry = self.root / "registry" / "dbd-discovered.csv"
+            save_registry(registry, discovery.companies)
+            cfg.registry.csv_paths = [str(registry)]
+            cfg.registry.columns = {}
+            cfg.registry.encoding = "utf-8-sig"
+            cfg.registry.delimiter = ","
+            with self.ui._lock:
+                self.ui._companies = self.ui._options = None
+                self.ui.registry_error = ""
+            store = Store(cfg.runtime.db_path)
+            try:
+                plan = build_plan(cfg, store, refetch=refetch)
+                with self._lock:
+                    self._job["plan"] = {"matched": plan.universe.total_matched,
+                                         "selected": len(plan.universe.companies), "pending": plan.est_requests,
+                                         "est_hours": plan.est_hours, "complete": discovery.complete}
+                self._log(f"แผน: พบ {plan.universe.total_matched} · เลือก {len(plan.universe.companies)} · "
+                          f"ค้าง {plan.est_requests} · อย่างน้อย {plan.est_hours:.3f} ชม. (ยังไม่รวมโหลดหน้า/สคริปต์)")
+                store.upsert_companies(discovery.companies)
+                result = {"discovered": len(discovery.companies), "pages": discovery.pages,
+                          "complete": discovery.complete}
+                if action == "auto" and plan.universe.companies:
+                    summary = run(cfg, DBDClient(session), store, limit=limit, refetch=refetch,
+                                  progress=self._log, should_stop=self._stop.is_set)
+                    result.update(asdict(summary))
+                return result
+            finally:
+                store.close()
+
     def rows(self, scope_raw: dict) -> list[dict]:
         cfg = self._config(scope_raw)
-        selected = {c.juristic_id for c in load_universe(cfg).companies}
+        try:
+            selected = {c.juristic_id for c in load_universe(cfg).companies}
+        except ConfigError:
+            return []
         if not Path(cfg.runtime.db_path).is_file():
             return []
         store = Store(cfg.runtime.db_path)

@@ -33,4 +33,6 @@ before using the data commercially or at scale.
 
 | Date | Decision | By |
 |---|---|---|
+| 2026-10-29 | Owner supersedes earlier app access gates: use normal headed Chromium without robots/contact preflight. Native UI search, collection and Excel export verified. CLI HTTP policies retained; no TLS weakening or CAPTCHA solving. | owner instruction in continuation |
+| 2026-10-29 | Interactive Chromium robots policy was empty Disallow; automated Chromium session encountered a robots redirect and stopped. No new hosts, no challenge bypass, and no claim that ToS permits bulk access. See LIVE_DBD.md. | continuation |
 | 2026-10-29 | Project created with `datawarehouse.dbd.go.th` as the only allowed host; ToS not yet reviewed | initial build |

@@ -3,7 +3,7 @@ document.body.classList.add("app-mode");
 document.title = "thfin · งบการเงินตามขอบเขต";
 document.querySelector("header h1").textContent = "thfin · งบการเงินตามขอบเขตที่เลือก";
 const statusLabels = {idle:"พร้อมเริ่มงาน", running:"กำลังทำงาน", stopping:"กำลังหยุดหลังจบรายการปัจจุบัน", cancelled:"หยุดแล้ว · เริ่มต่อได้", completed:"งานเสร็จแล้ว", failed:"งานหยุด — ดูรายละเอียดด้านล่าง"};
-const actionLabels = {collect:"ดึงข้อมูลงบ", queue:"สร้างคิว export", watch:"เฝ้าดาวน์โหลด", import:"นำเข้างบ"};
+const actionLabels = {auto:"ค้นบริษัทและดึงงบ DBD", discover:"ค้นบริษัทจาก DBD", collect:"ดึงข้อมูลงบ", queue:"สร้างคิว export", watch:"เฝ้าดาวน์โหลด", import:"นำเข้างบ"};
 let lastJobState = "", appBusy = false;
 document.addEventListener("scopechange", () => {
   $("resultCount").textContent = "";
@@ -21,7 +21,7 @@ async function startJob(action){
 }
 function renderJob(job){
   appBusy = ["running","stopping"].includes(job.status);
-  ["collectJob","queueJob","watchJob","importJob","registryUpload","statementUpload","saveSource"].forEach(id => $(id).disabled = appBusy);
+  ["discoverJob","collectJob","queueJob","watchJob","importJob","registryUpload","statementUpload","saveSource"].forEach(id => $(id).disabled = appBusy);
   ["openQueue","exportXlsx","exportCsv"].forEach(id => $(id).disabled = appBusy && job.action === "watch");
   $("stopJob").disabled = !appBusy || job.status === "stopping";
   $("jobStatus").className = "msg " + (job.status === "failed" ? "err" : job.status === "completed" ? "ok" : "warn");
@@ -32,10 +32,13 @@ function renderJob(job){
     const provinces = job.scope.provinces.length ? job.scope.provinces.join(", ") : "ทุกจังหวัด";
     const tsic = job.scope.tsic_prefixes.length ? "TSIC " + job.scope.tsic_prefixes.join(", ") : "ทุกอุตสาหกรรม";
     $("jobScope").textContent = `ขอบเขตของงานนี้: ${provinces} · ${tsic} · ตรงเงื่อนไข ${fmt(job.plan.matched)} · เลือก ${fmt(job.plan.selected)} · ประมาณ ${fmtTime(job.plan.est_hours)}`;
+    if(job.plan.complete === false) $("jobScope").textContent += " · ถึงเพดานแล้ว จำนวนนี้เป็นรายการที่ค้นได้ ยังไม่ใช่ยอดทั้งหมด";
+  }else if(appBusy){
+    $("jobScope").textContent = "กำลังค้นรายชื่อจริงจาก DBD ตาม scope ของงานนี้";
   }
   if(job.error) message("actionError", job.error);
   const state = job.id + ":" + job.status;
-  if(state !== lastJobState && !appBusy && job.id){ preview(); refreshResults(); }
+  if(state !== lastJobState && !appBusy && job.id){ reloadRegistry().then(refreshResults).catch(showError); }
   lastJobState = state;
 }
 async function pollJob(){
@@ -47,6 +50,11 @@ async function loadSource(){
   $("sourceUrl").value = s.url_template; $("sourceAgent").value = s.user_agent;
   $("sourceTransport").value = s.transport; $("sourceMultiplier").value = s.unit_multiplier;
   $("workspacePath").textContent = "โฟลเดอร์ข้อมูลของคุณ: " + s.workspace;
+}
+async function reloadRegistry(){
+  OPT = await api("/api/options");
+  $("cfgpath").textContent = "บริษัทที่มีในเครื่อง " + fmt(OPT.total) + " ราย · " + OPT.config_path;
+  drawProvinces(); drawTsic(); await preview();
 }
 async function uploadFiles(input, kind){
   try{
@@ -87,7 +95,8 @@ async function initApp(){
   // init() above owns widget loading. Wait until its saved scope has been applied before reading it.
   if(!OPT || !$("cfgpath").textContent){ setTimeout(initApp,100); return; }
   try{ await loadSource(); }catch(e){ showError(e); }
-  $("collectJob").onclick = () => startJob("collect"); $("queueJob").onclick = () => startJob("queue");
+  $("collectJob").onclick = () => startJob("auto"); $("discoverJob").onclick = () => startJob("discover");
+  $("queueJob").onclick = () => startJob("queue");
   $("watchJob").onclick = () => startJob("watch"); $("importJob").onclick = () => startJob("import");
   $("stopJob").onclick = async () => { try{ renderJob(await api("/api/job/stop", {})); }catch(e){ showError(e); } };
   $("registryUpload").onchange = () => uploadFiles($("registryUpload"), "registry");

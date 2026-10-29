@@ -136,6 +136,7 @@ class FinancialsCfg(_Base):
 
 
 class RuntimeCfg(_Base):
+    dbd_headless: bool = False  # native DBD mode uses a normal visible Chromium window
     transport: Literal["urllib", "chromium"] = "urllib"
     chromium_executable: str | None = None
     chromium_headless: bool = True

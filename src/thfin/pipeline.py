@@ -87,7 +87,7 @@ def run(
     progress: Callable[[str], None] = print,
     should_stop: Callable[[], bool] = lambda: False,
 ) -> RunSummary:
-    if "CHANGE-ME" in cfg.runtime.user_agent:
+    if "CHANGE-ME" in cfg.runtime.user_agent and not getattr(client, "native_browser", False):
         raise ConfigError(
             "runtime.user_agent still has the CHANGE-ME placeholder. Put a real contact "
             "(e.g. 'thfin-research/0.1 (+mailto:you@company.com)') so site owners can reach you."

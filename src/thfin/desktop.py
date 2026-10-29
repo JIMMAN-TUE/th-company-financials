@@ -61,6 +61,9 @@ def self_test(executable_path: str | None = None) -> int:
                     page = browser.new_page()
                     page.goto(f"http://127.0.0.1:{ui.port}/")
                     page.wait_for_selector("#collectJob")
+                    page.wait_for_selector("#discoverJob")
+                    from .dbd import parse_companies
+                    assert parse_companies("<table></table>") == []
                     page.wait_for_function("() => document.querySelector('#workspacePath').textContent.length > 0")
                     assert "thfin" in page.title()
                     with page.expect_response(lambda r: r.url.endswith("/api/upload")):

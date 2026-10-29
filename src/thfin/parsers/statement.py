@@ -19,14 +19,14 @@ from .numbers import parse_number
 FIELD_PATTERNS: dict[str, re.Pattern[str]] = {
     "revenue_total": re.compile(r"รายได้รวม|รวมรายได้|total\s+revenues?|total\s+income", re.I),
     "revenue_sales": re.compile(
-        r"รายได้จากการขาย|รายได้จากการให้บริการ|sales\s+(and|&)\s+service|"
+        r"รายได้หลัก|รายได้จากการขาย|รายได้จากการให้บริการ|sales\s+(and|&)\s+service|"
         r"revenues?\s+from\s+(sales|services?)|^\s*sales\s*$",
         re.I,
     ),
     "cost_of_sales": re.compile(
         r"ต้นทุนขาย|ต้นทุนการขาย|ต้นทุนการให้บริการ|cost\s+of\s+(sales|goods\s+sold|services?)", re.I
     ),
-    "total_expenses": re.compile(r"ค่าใช้จ่ายรวม|รวมค่าใช้จ่าย|total\s+expenses?", re.I),
+    "total_expenses": re.compile(r"รายจ่ายรวม|ค่าใช้จ่ายรวม|รวมค่าใช้จ่าย|total\s+expenses?", re.I),
     "net_profit": re.compile(
         r"กำไร\s*\(?ขาดทุน\)?\s*สุทธิ|กำไรสุทธิ|ขาดทุนสุทธิ|net\s+(profit|income|loss)", re.I
     ),

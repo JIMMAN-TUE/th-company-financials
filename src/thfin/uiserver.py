@@ -109,7 +109,8 @@ class ScopeUI:
         }
         companies = self.companies()
         if self.registry_error and not scope.include_ids:
-            out["warnings"].append("ยังไม่มีไฟล์ registry CSV: " + self.registry_error)
+            out["warnings"].append("เลือกหมวดและจังหวัด แล้วกดค้นบริษัทจาก DBD เพื่อคำนวณจำนวน" if self.app else
+                                   "ยังไม่มีไฟล์ registry CSV: " + self.registry_error)
             return out
         present = set((self._options or {}).get("present_fields", []))
         missing = [f for f in Matcher(scope).required_fields() if f not in present] if companies else []

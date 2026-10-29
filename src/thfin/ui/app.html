@@ -7,14 +7,18 @@
 .app-mode details{margin-top:10px}.app-mode summary{cursor:pointer}.app-mode #cfgpath{overflow-wrap:anywhere}
 </style>
 <div class="card">
-  <h2>เตรียมข้อมูล</h2>
-  <p class="hint">นำเข้า CSV ทะเบียนบริษัท แล้วเลือกจังหวัด หมวดอุตสาหกรรม ปีงบ และจำนวนบริษัททางซ้าย</p>
+  <h2>ค้นบริษัทจาก DBD</h2>
+  <p class="hint">เลือกหมวด TSIC จังหวัด ปีงบ และจำนวนบริษัททางซ้าย แล้วค้นรายชื่อจริงจาก DBD ได้ทันที ไม่ต้องนำเข้า CSV</p>
+  <div class="app-actions"><button class="primary" id="discoverJob">ค้นบริษัทจาก DBD ตาม scope</button></div>
+  <p class="hint">เมื่อถึงเพดานจะหยุดค้น จำนวนที่แสดงเป็นรายการที่พบ ไม่ใช่ยอดรวมทั้งหมดของ DBD</p>
+  <details><summary>นำเข้าไฟล์เพิ่มเติม (ถ้ามี)</summary>
   <label for="registryUpload">ไฟล์ทะเบียนบริษัท (.csv)</label>
   <input id="registryUpload" type="file" accept=".csv" multiple>
   <label for="statementUpload">ไฟล์งบที่มีเลขทะเบียน 13 หลักในชื่อไฟล์</label>
   <input id="statementUpload" type="file" accept=".xlsx,.xlsm,.html,.htm" multiple>
   <p class="hint">ไฟล์ละไม่เกิน 24 MB เก็บข้อมูลในเครื่องของผู้ใช้แต่ละคน</p>
   <div id="uploadMessage" role="status"></div>
+  </details>
 </div>
 <div class="card">
   <h2>รวบรวมตามขอบเขตที่เลือก</h2>
@@ -23,10 +27,10 @@
   <label><input id="refetchJob" type="checkbox"> ประมวลผลใหม่ รวมบริษัทที่เคยเก็บแล้ว</label>
   <p class="hint">ใช้หลังแก้ URL วิธีอ่านหน้าเว็บ หรือหน่วยงบ เริ่มประมวลผลใหม่จากบริษัทแรกใน scope ตามจำนวนต่อรอบที่เลือก</p>
   <div class="app-actions">
-    <button class="primary" id="collectJob">เริ่มดึงข้อมูลงบ</button>
+    <button class="primary" id="collectJob">ค้นบริษัทและดึงงบจาก DBD</button>
     <button class="ghost" id="stopJob" disabled>หยุด</button>
   </div>
-  <p class="hint">ระบบคำนวณขอบเขตอีกครั้งก่อนเริ่มงาน ใช้ Chromium ตามแหล่งข้อมูลที่ตั้งไว้</p>
+  <p class="hint">ค้นรายชื่อและคำนวณแผนก่อนดึงงบ เก็บตามปีที่เลือกด้วย Chromium และเริ่มต่อจากบริษัทที่ค้างได้</p>
   <details>
     <summary>ใช้ไฟล์ที่ export ด้วยมือ</summary>
     <div class="app-actions"><button class="ghost" id="queueJob">สร้างคิวตาม scope</button><button class="ghost" id="openQueue">ดาวน์โหลดรายการคิว</button></div>
@@ -49,7 +53,7 @@
 <div class="card">
   <details><summary>ตั้งค่าแหล่งข้อมูล</summary>
     <label for="sourceUrl">ลิงก์หน้าบริษัท ({juristic_id} แทนเลขทะเบียน)</label><input id="sourceUrl" type="text">
-    <p class="hint">ลิงก์เริ่มต้นยังไม่ยืนยันรูปแบบจริง กรุณาตรวจสอบก่อนรัน</p>
+    <p class="hint">โหมด DBD อัตโนมัติค้นเลขทะเบียนแล้วเปิดลิงก์จริงจากผลค้น ส่วนลิงก์นี้ใช้กับ CLI และคิว export</p>
     <label for="sourceAgent">ข้อมูลติดต่อที่ส่งให้เว็บไซต์ (User-Agent)</label><input id="sourceAgent" type="text" placeholder="thfin/0.1 (+mailto:you@company.com)">
     <label for="sourceTransport">วิธีอ่านหน้าเว็บ</label><select id="sourceTransport"><option value="chromium">Chromium · สำหรับตาราง JavaScript</option><option value="urllib">HTTP · สำหรับ HTML ปกติ</option></select>
     <label for="sourceMultiplier">ตัวคูณหน่วยงบ (บาท = 1, พันบาท = 1000)</label><input id="sourceMultiplier" type="number" step="any" min="0" value="1">
